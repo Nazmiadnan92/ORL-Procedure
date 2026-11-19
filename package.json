@@ -1,0 +1,10 @@
+{
+  "name": "orl-procedure",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "serve": "npx --yes serve@14.2.5 . -l 4173"
+  }
+}
