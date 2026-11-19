@@ -1330,6 +1330,336 @@ tr.row-ward-bed td.procedure-cell,
   font-size: 1.35rem;
 }
 
+.admin-section-tabs {
+  display: inline-flex;
+  gap: 5px;
+  margin-bottom: 18px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #edf2f0;
+}
+
+.admin-section-tabs button {
+  min-height: 42px;
+  padding: 9px 17px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.admin-section-tabs button.active {
+  background: white;
+  color: var(--teal);
+  box-shadow: 0 2px 9px rgb(23 45 50 / 9%);
+}
+
+.stats-period-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 14px;
+  padding: 21px 24px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+  box-shadow: 0 5px 18px rgb(23 45 50 / 5%);
+}
+
+.stats-period-card h2 {
+  margin-bottom: 4px;
+  font-size: 1.25rem;
+  letter-spacing: -0.025em;
+}
+
+.stats-period-card > div > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.stats-period-controls {
+  display: flex;
+  gap: 11px;
+}
+
+.stats-period-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.stats-period-controls select {
+  min-width: 150px;
+}
+
+.monthly-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.monthly-summary > div {
+  position: relative;
+  overflow: hidden;
+  min-height: 122px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+}
+
+.monthly-summary > div::after {
+  position: absolute;
+  right: -20px;
+  bottom: -38px;
+  width: 105px;
+  height: 105px;
+  border-radius: 50%;
+  background: rgb(23 107 101 / 6%);
+  content: "";
+}
+
+.monthly-summary span,
+.monthly-summary strong,
+.monthly-summary small {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.monthly-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.monthly-summary strong {
+  margin: 4px 0 2px;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.monthly-summary small {
+  color: #7b898b;
+  font-size: 0.7rem;
+}
+
+.monthly-summary .monthly-clinic {
+  border-top: 4px solid var(--teal);
+}
+
+.monthly-summary .monthly-ward {
+  border-top: 4px solid #d69a2d;
+}
+
+.monthly-summary .monthly-total {
+  border-top: 4px solid var(--ink);
+}
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.85fr) minmax(450px, 1.15fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.stat-box {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+  box-shadow: 0 5px 18px rgb(23 45 50 / 5%);
+}
+
+.stat-box-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 82px;
+  padding: 17px 19px;
+  border-bottom: 1px solid var(--soft-line);
+}
+
+.stat-box-heading .eyebrow {
+  margin-bottom: 4px;
+}
+
+.stat-box-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.stat-legend {
+  display: flex;
+  gap: 11px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.stat-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stat-legend span::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  content: "";
+}
+
+.clinic-key::before {
+  background: var(--teal);
+}
+
+.ward-key::before {
+  background: #d69a2d;
+}
+
+.stat-note {
+  max-width: 170px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.stat-table-wrap {
+  overflow-x: auto;
+}
+
+.stat-table {
+  min-width: 460px;
+  font-size: 0.82rem;
+}
+
+.stat-table th,
+.stat-table td {
+  padding: 13px 15px;
+}
+
+.stat-table thead th {
+  position: static;
+}
+
+.stat-table tbody th {
+  background: white;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stat-table td {
+  text-align: center;
+}
+
+.stat-table td:last-child {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.procedure-stats-list {
+  overflow-y: auto;
+  max-height: 530px;
+  padding: 4px 18px 10px;
+}
+
+.procedure-stat-row {
+  padding: 13px 1px;
+  border-bottom: 1px solid var(--soft-line);
+}
+
+.procedure-stat-row:last-child {
+  border-bottom: 0;
+}
+
+.procedure-stat-heading,
+.procedure-stat-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.procedure-stat-heading strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.procedure-stat-heading > span {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.procedure-bar-track {
+  overflow: hidden;
+  height: 9px;
+  margin: 8px 0 5px;
+  border-radius: 99px;
+  background: #edf1f0;
+}
+
+.procedure-bar-stack {
+  display: flex;
+  overflow: hidden;
+  min-width: 3px;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.procedure-bar-clinic {
+  background: var(--teal);
+}
+
+.procedure-bar-ward {
+  background: #d69a2d;
+}
+
+.procedure-stat-split {
+  justify-content: flex-start;
+  gap: 13px;
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+
+.stats-empty {
+  display: grid;
+  min-height: 360px;
+  place-content: center;
+  place-items: center;
+  border: 1px dashed #cbd7d4;
+  border-radius: 15px;
+  background: rgb(255 255 255 / 58%);
+  text-align: center;
+}
+
+.stats-empty h3 {
+  margin: 14px 0 5px;
+}
+
+.stats-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .admin-toolbar {
   flex-wrap: nowrap;
 }
@@ -1778,6 +2108,10 @@ tr.row-ward-bed td.procedure-cell,
   .admin-toolbar .list-search {
     flex-basis: 100%;
   }
+
+  .statistics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1935,6 +2269,44 @@ tr.row-ward-bed td.procedure-cell,
 
   .admin-summary > div:first-child {
     grid-column: 1 / -1;
+  }
+
+  .admin-section-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .admin-section-tabs button {
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .stats-period-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stats-period-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-period-controls select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .monthly-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .statistics-grid {
+    display: block;
+  }
+
+  .procedure-stat-box {
+    margin-top: 14px;
   }
 
   .compact-select {

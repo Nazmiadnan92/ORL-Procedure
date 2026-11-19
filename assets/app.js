@@ -6,8 +6,10 @@ import {
   formatDateTime,
   formatTime,
   malaysiaDateLabel,
+  malaysiaMonthYear,
   malaysiaTodayBounds,
   millisecondsUntilMalaysiaMidnight,
+  monthlyStatistics,
   normalizeBooking,
   readableError,
 } from "./lib.js";
@@ -41,6 +43,9 @@ const state = {
   adminStatusFilter: "All",
   adminRefreshTimer: null,
   pendingDeleteId: null,
+  adminSection: "bookings",
+  statsMonth: malaysiaMonthYear(new Date()).month,
+  statsYear: malaysiaMonthYear(new Date()).year,
 };
 
 const elements = {
@@ -106,6 +111,22 @@ const elements = {
   deleteDialog: document.querySelector("#delete-dialog"),
   deleteDialogCopy: document.querySelector("#delete-dialog-copy"),
   confirmDelete: document.querySelector("#confirm-delete"),
+  adminBookingsTab: document.querySelector("#admin-bookings-tab"),
+  adminStatsTab: document.querySelector("#admin-stats-tab"),
+  adminBookingsPanel: document.querySelector("#admin-bookings-panel"),
+  adminStatsPanel: document.querySelector("#admin-stats-panel"),
+  statsMonth: document.querySelector("#stats-month"),
+  statsYear: document.querySelector("#stats-year"),
+  statsPeriodLabel: document.querySelector("#stats-period-label"),
+  statsTotal: document.querySelector("#stats-total"),
+  statsClinic: document.querySelector("#stats-clinic"),
+  statsWard: document.querySelector("#stats-ward"),
+  statsClinicPercent: document.querySelector("#stats-clinic-percent"),
+  statsWardPercent: document.querySelector("#stats-ward-percent"),
+  statsEmpty: document.querySelector("#stats-empty"),
+  statsContent: document.querySelector("#stats-content"),
+  subspecialtyStatsBody: document.querySelector("#subspecialty-stats-body"),
+  procedureStatsList: document.querySelector("#procedure-stats-list"),
 };
 
 function setView(viewName, updateHistory = true) {
@@ -632,6 +653,8 @@ async function fetchAdminBookings({ silent = false } = {}) {
     state.adminBookings = records.map(normalizeBooking);
     state.adminLoaded = true;
     updateAdminSummary();
+    populateStatsYears();
+    renderMonthlyStatistics();
     renderAdminBookings();
     elements.adminLastUpdated.textContent = formatTime(new Date());
   } catch (error) {
@@ -649,6 +672,104 @@ function updateAdminSummary() {
   elements.adminReadyCount.textContent = String(count("READY"));
   elements.adminDoneCount.textContent = String(count("DONE"));
   elements.adminCancelCount.textContent = String(count("CANCEL"));
+}
+
+function setAdminSection(section) {
+  state.adminSection = section === "statistics" ? "statistics" : "bookings";
+  const showStats = state.adminSection === "statistics";
+  elements.adminBookingsPanel.hidden = showStats;
+  elements.adminStatsPanel.hidden = !showStats;
+  elements.adminBookingsTab.classList.toggle("active", !showStats);
+  elements.adminStatsTab.classList.toggle("active", showStats);
+  elements.adminBookingsTab.setAttribute("aria-selected", String(!showStats));
+  elements.adminStatsTab.setAttribute("aria-selected", String(showStats));
+  if (showStats) renderMonthlyStatistics();
+}
+
+function populateStatsYears() {
+  const currentYear = malaysiaMonthYear(new Date()).year;
+  const years = new Set([currentYear]);
+  state.adminBookings.forEach((booking) => years.add(malaysiaMonthYear(booking.booked_at).year));
+  const sortedYears = [...years].sort((a, b) => b - a);
+  elements.statsYear.replaceChildren(
+    ...sortedYears.map((year) => {
+      const option = document.createElement("option");
+      option.value = String(year);
+      option.textContent = String(year);
+      return option;
+    }),
+  );
+  if (!years.has(state.statsYear)) state.statsYear = sortedYears[0];
+  elements.statsYear.value = String(state.statsYear);
+  elements.statsMonth.value = String(state.statsMonth);
+}
+
+function percentage(value, total) {
+  return total ? Math.round((value / total) * 100) : 0;
+}
+
+function renderMonthlyStatistics() {
+  const statistics = monthlyStatistics(state.adminBookings, state.statsMonth, state.statsYear);
+  const monthName = elements.statsMonth.options[elements.statsMonth.selectedIndex]?.textContent ?? "";
+  elements.statsPeriodLabel.textContent = `${monthName} ${state.statsYear}`;
+  elements.statsTotal.textContent = String(statistics.total);
+  elements.statsClinic.textContent = String(statistics.clinic);
+  elements.statsWard.textContent = String(statistics.ward);
+  elements.statsClinicPercent.textContent = `${percentage(statistics.clinic, statistics.total)}% daripada kes`;
+  elements.statsWardPercent.textContent = `${percentage(statistics.ward, statistics.total)}% daripada kes`;
+  elements.statsEmpty.hidden = statistics.total !== 0;
+  elements.statsContent.hidden = statistics.total === 0;
+
+  elements.subspecialtyStatsBody.replaceChildren(
+    ...statistics.subspecialties.map((item) => {
+      const row = document.createElement("tr");
+      [item.name, item.clinic, item.ward, item.total].forEach((value, index) => {
+        const cell = document.createElement(index === 0 ? "th" : "td");
+        cell.textContent = String(value);
+        if (index === 0) cell.scope = "row";
+        row.append(cell);
+      });
+      return row;
+    }),
+  );
+
+  elements.procedureStatsList.replaceChildren();
+  const maximum = Math.max(1, ...statistics.procedures.map((item) => item.total));
+  statistics.procedures.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "procedure-stat-row";
+    const heading = document.createElement("div");
+    heading.className = "procedure-stat-heading";
+    const name = document.createElement("strong");
+    name.textContent = item.name;
+    const total = document.createElement("span");
+    total.textContent = `${item.total} case${item.total === 1 ? "" : "s"}`;
+    heading.append(name, total);
+
+    const track = document.createElement("div");
+    track.className = "procedure-bar-track";
+    const stack = document.createElement("div");
+    stack.className = "procedure-bar-stack";
+    stack.style.width = `${(item.total / maximum) * 100}%`;
+    const clinic = document.createElement("span");
+    clinic.className = "procedure-bar-clinic";
+    clinic.style.width = `${percentage(item.clinic, item.total)}%`;
+    const ward = document.createElement("span");
+    ward.className = "procedure-bar-ward";
+    ward.style.width = `${percentage(item.ward, item.total)}%`;
+    stack.append(clinic, ward);
+    track.append(stack);
+
+    const split = document.createElement("div");
+    split.className = "procedure-stat-split";
+    const clinicCount = document.createElement("span");
+    clinicCount.textContent = `Clinic ${item.clinic}`;
+    const wardCount = document.createElement("span");
+    wardCount.textContent = `Ward ${item.ward}`;
+    split.append(clinicCount, wardCount);
+    row.append(heading, track, split);
+    elements.procedureStatsList.append(row);
+  });
 }
 
 function showAdminState(kind) {
@@ -878,6 +999,7 @@ async function updateAdminBooking(bookingId, patch, row) {
     booking.procedureSearch = booking.procedures.map((procedure) => procedure.name).join(" ").toLowerCase();
   }
   updateAdminSummary();
+  renderMonthlyStatistics();
   renderAdminBookings();
   showToast("Perubahan disimpan", "Booking telah dikemas kini.");
   return true;
@@ -910,6 +1032,7 @@ async function deleteAdminBooking() {
   state.pendingDeleteId = null;
   elements.deleteDialog.close();
   updateAdminSummary();
+  renderMonthlyStatistics();
   renderAdminBookings();
   showToast("Booking dipadam", "Rekod disembunyikan dan masih boleh dipulihkan.");
 }
@@ -1028,6 +1151,16 @@ function bindEvents() {
     elements.togglePassword.setAttribute("aria-label", showing ? "Tunjukkan password" : "Sembunyikan password");
   });
   elements.adminLogout.addEventListener("click", handleAdminLogout);
+  elements.adminBookingsTab.addEventListener("click", () => setAdminSection("bookings"));
+  elements.adminStatsTab.addEventListener("click", () => setAdminSection("statistics"));
+  elements.statsMonth.addEventListener("change", () => {
+    state.statsMonth = Number(elements.statsMonth.value);
+    renderMonthlyStatistics();
+  });
+  elements.statsYear.addEventListener("change", () => {
+    state.statsYear = Number(elements.statsYear.value);
+    renderMonthlyStatistics();
+  });
   elements.adminSearch.addEventListener("input", () => {
     state.adminSearchQuery = elements.adminSearch.value;
     renderAdminBookings();

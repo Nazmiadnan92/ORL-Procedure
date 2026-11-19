@@ -7,6 +7,7 @@ import {
   formatDateTime,
   millisecondsUntilMalaysiaMidnight,
   malaysiaTodayBounds,
+  monthlyStatistics,
   normalizeBooking,
   readableError,
 } from "../assets/lib.js";
@@ -83,4 +84,38 @@ test("builds exact Malaysia day bounds for the Staff list", () => {
     start: "2026-11-19T16:00:00.000Z",
     end: "2026-11-20T16:00:00.000Z",
   });
+});
+
+test("builds monthly Clinic and Ward statistics in Malaysia time", () => {
+  const records = [
+    normalizeBooking({
+      ...base,
+      id: "nov-clinic",
+      booked_at: "2026-10-31T18:00:00.000Z",
+      patient_source: "Clinic",
+      subspecialty: "Otology",
+      booking_procedures: [
+        { procedure_id: "p1", procedures: { name: "EUM", uses_bed: true } },
+        { procedure_id: "p1", procedures: { name: "EUM", uses_bed: true } },
+      ],
+    }),
+    normalizeBooking({
+      ...base,
+      id: "nov-ward",
+      booked_at: "2026-11-20T02:00:00.000Z",
+      patient_source: "Ward",
+      subspecialty: "Rhinology",
+      booking_procedures: [{ procedure_id: "p2", procedures: { name: "Flex", uses_bed: false } }],
+    }),
+    normalizeBooking({
+      ...base,
+      id: "dec-clinic",
+      booked_at: "2026-11-30T17:00:00.000Z",
+      patient_source: "Clinic",
+    }),
+  ];
+  const stats = monthlyStatistics(records, 11, 2026);
+  assert.deepEqual({ total: stats.total, clinic: stats.clinic, ward: stats.ward }, { total: 2, clinic: 1, ward: 1 });
+  assert.equal(stats.subspecialties.find((item) => item.name === "Otology").clinic, 1);
+  assert.deepEqual(stats.procedures.map((item) => [item.name, item.total]), [["EUM", 1], ["Flex", 1]]);
 });

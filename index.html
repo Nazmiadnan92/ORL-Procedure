@@ -317,15 +317,21 @@
             </div>
           </div>
 
-          <div class="admin-summary" aria-label="Ringkasan semua rekod">
+          <div class="admin-section-tabs" role="tablist" aria-label="Admin sections">
+            <button id="admin-bookings-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="admin-bookings-panel">Booking Management</button>
+            <button id="admin-stats-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-stats-panel">Monthly Statistics</button>
+          </div>
+
+          <div id="admin-bookings-panel" role="tabpanel" aria-labelledby="admin-bookings-tab">
+            <div class="admin-summary" aria-label="Ringkasan semua rekod">
             <div><span>Total Records</span><strong id="admin-total-count">0</strong></div>
             <div><span>NEW</span><strong id="admin-new-count">0</strong></div>
             <div><span>READY</span><strong id="admin-ready-count">0</strong></div>
             <div><span>DONE</span><strong id="admin-done-count">0</strong></div>
             <div><span>CANCEL</span><strong id="admin-cancel-count">0</strong></div>
-          </div>
+            </div>
 
-          <div class="list-card admin-list-card">
+            <div class="list-card admin-list-card">
             <div class="list-toolbar admin-toolbar">
               <label class="list-search">
                 <span class="sr-only">Cari semua rekod</span>
@@ -402,9 +408,90 @@
                 <tbody id="admin-table-body"></tbody>
               </table>
             </div>
+            </div>
+
+            <p class="last-updated">Admin data updated <time id="admin-last-updated">—</time></p>
           </div>
 
-          <p class="last-updated">Admin data updated <time id="admin-last-updated">—</time></p>
+          <div id="admin-stats-panel" role="tabpanel" aria-labelledby="admin-stats-tab" hidden>
+            <div class="stats-period-card">
+              <div>
+                <p class="eyebrow">Ringkasan mengikut bulan</p>
+                <h2>Statistik Bulanan</h2>
+                <p id="stats-period-label">—</p>
+              </div>
+              <div class="stats-period-controls">
+                <label>
+                  <span>Bulan</span>
+                  <span class="compact-select">
+                    <select id="stats-month" aria-label="Bulan">
+                      <option value="1">Januari</option>
+                      <option value="2">Februari</option>
+                      <option value="3">Mac</option>
+                      <option value="4">April</option>
+                      <option value="5">Mei</option>
+                      <option value="6">Jun</option>
+                      <option value="7">Julai</option>
+                      <option value="8">Ogos</option>
+                      <option value="9">September</option>
+                      <option value="10">Oktober</option>
+                      <option value="11">November</option>
+                      <option value="12">Disember</option>
+                    </select>
+                  </span>
+                </label>
+                <label>
+                  <span>Tahun</span>
+                  <span class="compact-select">
+                    <select id="stats-year" aria-label="Tahun"></select>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div class="monthly-summary" aria-label="Ringkasan kes bulanan">
+              <div class="monthly-total"><span>Total Cases</span><strong id="stats-total">0</strong><small>Satu booking dikira satu kes</small></div>
+              <div class="monthly-clinic"><span>Clinic · Outpatient</span><strong id="stats-clinic">0</strong><small id="stats-clinic-percent">0% daripada kes</small></div>
+              <div class="monthly-ward"><span>Ward · Inpatient</span><strong id="stats-ward">0</strong><small id="stats-ward-percent">0% daripada kes</small></div>
+            </div>
+
+            <div id="stats-empty" class="stats-empty" hidden>
+              <div class="state-icon">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9m6 10V4m6 15v-7m4 7H2" /></svg>
+              </div>
+              <h3>Tiada kes untuk bulan ini</h3>
+              <p>Pilih bulan atau tahun lain untuk melihat statistik.</p>
+            </div>
+
+            <div id="stats-content" class="statistics-grid">
+              <section class="stat-box" aria-labelledby="subspecialty-stat-title">
+                <div class="stat-box-heading">
+                  <div>
+                    <p class="eyebrow">Case mix</p>
+                    <h3 id="subspecialty-stat-title">Cases by Subspecialty</h3>
+                  </div>
+                  <div class="stat-legend" aria-label="Petunjuk warna"><span class="clinic-key">Clinic</span><span class="ward-key">Ward</span></div>
+                </div>
+                <div class="stat-table-wrap">
+                  <table class="stat-table">
+                    <thead><tr><th>Subspecialty</th><th>Clinic</th><th>Ward</th><th>Total</th></tr></thead>
+                    <tbody id="subspecialty-stats-body"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="stat-box procedure-stat-box" aria-labelledby="procedure-stat-title">
+                <div class="stat-box-heading">
+                  <div>
+                    <p class="eyebrow">Procedure volume</p>
+                    <h3 id="procedure-stat-title">Cases by Procedure</h3>
+                  </div>
+                  <span class="stat-note">Satu prosedur dikira sekali bagi setiap booking</span>
+                </div>
+                <div id="procedure-stats-list" class="procedure-stats-list"></div>
+              </section>
+            </div>
+          </div>
         </div>
       </section>
     </main>

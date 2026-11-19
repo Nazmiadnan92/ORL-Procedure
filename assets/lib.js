@@ -16,6 +16,8 @@ const malaysiaTime = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
+export const SUBSPECIALTY_ORDER = ["Gen ORL", "Otology", "Rhinology", "Head & Neck", "Paeds ORL"];
+
 export function formatDateTime(value) {
   return malaysiaDateTime.format(new Date(value)).replace(",", "");
 }
@@ -109,6 +111,60 @@ export function malaysiaTodayBounds(value = new Date()) {
   return {
     start: start.toISOString(),
     end: new Date(start.getTime() + 86_400_000).toISOString(),
+  };
+}
+
+export function malaysiaMonthYear(value) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date(value));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { month: Number(values.month), year: Number(values.year) };
+}
+
+export function monthlyStatistics(bookings, month, year) {
+  const selected = bookings.filter((booking) => {
+    const period = malaysiaMonthYear(booking.booked_at);
+    return period.month === Number(month) && period.year === Number(year);
+  });
+
+  const subspecialtyMap = new Map(
+    SUBSPECIALTY_ORDER.map((name) => [name, { name, clinic: 0, ward: 0, total: 0 }]),
+  );
+  const procedureMap = new Map();
+  let clinic = 0;
+  let ward = 0;
+
+  selected.forEach((booking) => {
+    const sourceKey = booking.patient_source === "Ward" ? "ward" : "clinic";
+    if (sourceKey === "ward") ward += 1;
+    else clinic += 1;
+
+    const subspecialty = subspecialtyMap.get(booking.subspecialty);
+    if (subspecialty) {
+      subspecialty[sourceKey] += 1;
+      subspecialty.total += 1;
+    }
+
+    const uniqueProcedures = new Map(
+      booking.procedures.map((procedure) => [procedure.id ?? procedure.name, procedure.name]),
+    );
+    uniqueProcedures.forEach((name, key) => {
+      if (!procedureMap.has(key)) procedureMap.set(key, { name, clinic: 0, ward: 0, total: 0 });
+      const procedure = procedureMap.get(key);
+      procedure[sourceKey] += 1;
+      procedure.total += 1;
+    });
+  });
+
+  return {
+    total: selected.length,
+    clinic,
+    ward,
+    subspecialties: [...subspecialtyMap.values()],
+    procedures: [...procedureMap.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name)),
   };
 }
 
