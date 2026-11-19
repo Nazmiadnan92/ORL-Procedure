@@ -29,8 +29,15 @@ in Phase 1. Archived procedure names can be added inactive during migration.
 Run `supabase/tests/phase1.sql` as postgres in this project's SQL Editor.
 It verifies permissions under actual Postgres roles and rolls back all fixtures.
 
-`supabase/config.toml` records the intended Auth configuration for deployment.
-It does not apply remote settings by itself. The Phase 3 login must use the
-project's correct Site URL and disable public account registration.
+Public Auth registration is disabled. The saved Site URL is
+`https://nazmiadnan92.github.io/ORL-Procedure/`. Anonymous Auth sign-in is disabled.
+Staff uses the public application role without creating an Auth account.
+`supabase/config.toml` records these settings; editing that file alone does not
+apply remote configuration.
+
+The live SQL integration suite passed on 19 November 2026. All test bookings
+and test Auth identities were rolled back. Provision the real Admin through
+Authentication > Users > Add user > Create new user, with Auto confirm user
+enabled. The owner enters the password privately in Supabase.
 
 Keep patient exports and secret keys outside this public repository.
