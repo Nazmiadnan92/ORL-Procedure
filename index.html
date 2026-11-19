@@ -44,9 +44,15 @@
         </button>
       </nav>
 
-      <div class="connection-pill" id="connection-pill" role="status" aria-live="polite">
-        <span class="connection-dot"></span>
-        <span id="connection-label">Menghubungkan</span>
+      <div class="header-actions">
+        <div class="connection-pill" id="connection-pill" role="status" aria-live="polite">
+          <span class="connection-dot"></span>
+          <span id="connection-label">Menghubungkan</span>
+        </div>
+        <button class="admin-entry" type="button" data-view="admin" aria-label="Buka Admin">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM4 21a8 8 0 0 1 16 0" /></svg>
+          <span>Admin</span>
+        </button>
       </div>
     </header>
 
@@ -74,7 +80,7 @@
               </div>
             </div>
 
-            <div class="form-grid two-columns">
+            <div class="form-grid staff-form-stack">
               <label class="field">
                 <span>Doctor *</span>
                 <input id="doctor" name="doctor" type="text" autocomplete="name" maxlength="120" placeholder="Nama doktor" required />
@@ -102,20 +108,6 @@
                 <small class="field-error" data-error-for="subspecialty"></small>
               </label>
 
-              <fieldset class="field source-field">
-                <legend>Patient Source *</legend>
-                <div class="segmented-control">
-                  <label>
-                    <input type="radio" name="patientSource" value="Clinic" />
-                    <span>Clinic</span>
-                  </label>
-                  <label>
-                    <input type="radio" name="patientSource" value="Ward" />
-                    <span>Ward</span>
-                  </label>
-                </div>
-                <small class="field-error" data-error-for="patientSource"></small>
-              </fieldset>
             </div>
           </div>
 
@@ -152,6 +144,21 @@
                   <label><input type="checkbox" name="affectedRegion" value="Throat" /><span>Throat</span></label>
                 </div>
                 <small class="field-error" data-error-for="affectedRegions"></small>
+              </fieldset>
+
+              <fieldset class="field source-field">
+                <legend>Patient Source *</legend>
+                <div class="segmented-control">
+                  <label>
+                    <input type="radio" name="patientSource" value="Clinic" />
+                    <span>Clinic</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="patientSource" value="Ward" />
+                    <span>Ward</span>
+                  </label>
+                </div>
+                <small class="field-error" data-error-for="patientSource"></small>
               </fieldset>
 
               <label class="field">
@@ -260,7 +267,161 @@
 
         <p class="last-updated">Last updated <time id="last-updated">—</time></p>
       </section>
+
+      <section id="admin-view" class="view" aria-label="Admin" hidden>
+        <div id="admin-login-panel" class="admin-login-shell">
+          <div class="admin-login-card">
+            <div class="login-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 11V8a4 4 0 0 1 8 0v3M6 11h12v10H6V11Z" /></svg>
+            </div>
+            <p class="eyebrow">Akses terhad</p>
+            <h1 id="admin-title">Admin Login</h1>
+            <p class="login-copy">Log masuk untuk mengurus booking, status dan rekod sejarah.</p>
+
+            <form id="admin-login-form" class="admin-login-form" novalidate>
+              <label class="field">
+                <span>Email</span>
+                <input id="admin-email" name="email" type="email" value="orlprosedur@gmail.com" autocomplete="username" readonly />
+              </label>
+              <label class="field">
+                <span>Password</span>
+                <span class="password-wrap">
+                  <input id="admin-password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password Admin" required />
+                  <button id="toggle-password" type="button" aria-label="Tunjukkan password">Show</button>
+                </span>
+                <small class="field-error" id="admin-login-error"></small>
+              </label>
+              <button id="admin-login-button" class="primary-button login-button" type="submit">
+                <span class="button-label">Log In</span>
+                <span class="button-spinner" aria-hidden="true"></span>
+              </button>
+            </form>
+
+            <button class="back-to-staff" type="button" data-view="booking">Kembali ke Staff</button>
+          </div>
+        </div>
+
+        <div id="admin-dashboard" hidden>
+          <div class="page-intro admin-intro">
+            <div>
+              <p class="eyebrow">Pengurusan booking</p>
+              <h1>Admin Dashboard</h1>
+              <p>Edit Procedure, Notes dan Status terus pada senarai. Maklumat asal pesakit dikunci.</p>
+            </div>
+            <div class="admin-account">
+              <div>
+                <span>Logged in as</span>
+                <strong id="admin-account-email">orlprosedur@gmail.com</strong>
+              </div>
+              <button id="admin-logout" class="secondary-button compact-button" type="button">Log Out</button>
+            </div>
+          </div>
+
+          <div class="admin-summary" aria-label="Ringkasan semua rekod">
+            <div><span>Total Records</span><strong id="admin-total-count">0</strong></div>
+            <div><span>NEW</span><strong id="admin-new-count">0</strong></div>
+            <div><span>READY</span><strong id="admin-ready-count">0</strong></div>
+            <div><span>DONE</span><strong id="admin-done-count">0</strong></div>
+            <div><span>CANCEL</span><strong id="admin-cancel-count">0</strong></div>
+          </div>
+
+          <div class="list-card admin-list-card">
+            <div class="list-toolbar admin-toolbar">
+              <label class="list-search">
+                <span class="sr-only">Cari semua rekod</span>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
+                <input id="admin-search" type="search" placeholder="Cari doktor, pesakit atau prosedur" />
+              </label>
+              <label class="compact-select">
+                <span class="sr-only">Tapis source</span>
+                <select id="admin-source-filter">
+                  <option value="All">All Sources</option>
+                  <option value="Clinic">Clinic</option>
+                  <option value="Ward">Ward</option>
+                </select>
+              </label>
+              <label class="compact-select">
+                <span class="sr-only">Tapis status</span>
+                <select id="admin-status-filter">
+                  <option value="All">All Statuses</option>
+                  <option value="NEW">NEW</option>
+                  <option value="READY">READY</option>
+                  <option value="DONE">DONE</option>
+                  <option value="CANCEL">CANCEL</option>
+                </select>
+              </label>
+              <button class="icon-button" id="admin-refresh" type="button" aria-label="Muat semula rekod Admin" title="Muat semula">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg>
+              </button>
+            </div>
+
+            <div id="admin-loading" class="list-state">
+              <span class="large-spinner" aria-hidden="true"></span>
+              <p>Memuatkan rekod Admin…</p>
+            </div>
+
+            <div id="admin-error" class="list-state error-state" hidden>
+              <div class="state-icon">!</div>
+              <h2>Rekod tidak dapat dimuatkan</h2>
+              <p>Sila muat semula atau log masuk sekali lagi.</p>
+              <button class="secondary-button" type="button" id="admin-retry">Cuba semula</button>
+            </div>
+
+            <div id="admin-empty" class="list-state empty-state" hidden>
+              <div class="state-icon">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" /><path d="M9 14h6" /></svg>
+              </div>
+              <h2>Belum ada rekod</h2>
+              <p>Rekod Staff akan muncul di sini selepas booking dihantar.</p>
+            </div>
+
+            <div id="admin-no-results" class="list-state empty-state" hidden>
+              <div class="state-icon">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
+              </div>
+              <h2>Tiada rekod sepadan</h2>
+              <p>Cuba carian atau penapis lain.</p>
+            </div>
+
+            <div id="admin-results" class="admin-table-scroll" hidden>
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Doctor</th>
+                    <th>Patient Name</th>
+                    <th>Subspecialty</th>
+                    <th>Procedure <small>Click to edit</small></th>
+                    <th>Affected Region</th>
+                    <th>Source</th>
+                    <th>Notes <small>Click to edit</small></th>
+                    <th>Status</th>
+                    <th><span class="sr-only">Delete</span></th>
+                  </tr>
+                </thead>
+                <tbody id="admin-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <p class="last-updated">Admin data updated <time id="admin-last-updated">—</time></p>
+        </div>
+      </section>
     </main>
+
+    <dialog id="delete-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <div class="dialog-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg>
+        </div>
+        <h2>Delete booking?</h2>
+        <p id="delete-dialog-copy">Rekod ini akan disembunyikan daripada senarai dan statistik.</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel">Cancel</button>
+          <button id="confirm-delete" class="danger-button" value="default">Delete</button>
+        </div>
+      </form>
+    </dialog>
 
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 

@@ -34,7 +34,7 @@ export function bookingRowClass(booking) {
 
 export function normalizeBooking(record) {
   const procedures = (record.booking_procedures ?? [])
-    .map((item) => item.procedures)
+    .map((item) => (item.procedures ? { ...item.procedures, id: item.procedure_id } : null))
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -64,6 +64,12 @@ export function filterBookings(bookings, query, source) {
   });
 }
 
+export function filterAdminBookings(bookings, query, source, status) {
+  return filterBookings(bookings, query, source).filter(
+    (booking) => status === "All" || booking.status === status,
+  );
+}
+
 export function readableError(error) {
   const message = String(error?.message ?? error ?? "");
   if (/failed to fetch|network|load failed/i.test(message)) {
@@ -89,6 +95,21 @@ export function malaysiaDateLabel(value = new Date()) {
     month: "long",
     year: "numeric",
   }).format(value);
+}
+
+export function malaysiaTodayBounds(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const start = new Date(`${values.year}-${values.month}-${values.day}T00:00:00+08:00`);
+  return {
+    start: start.toISOString(),
+    end: new Date(start.getTime() + 86_400_000).toISOString(),
+  };
 }
 
 export function millisecondsUntilMalaysiaMidnight(now = new Date()) {

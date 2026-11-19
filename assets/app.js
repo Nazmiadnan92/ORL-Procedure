@@ -1,10 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 import {
   bookingRowClass,
+  filterAdminBookings,
   filterBookings,
   formatDateTime,
   formatTime,
   malaysiaDateLabel,
+  malaysiaTodayBounds,
   millisecondsUntilMalaysiaMidnight,
   normalizeBooking,
   readableError,
@@ -14,7 +16,7 @@ const SUPABASE_URL = "https://wpssewipanzmsygmhior.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_b8ZgFXg5fheb5WV-nIe5MQ_ZKRpquAt";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   realtime: { params: { eventsPerSecond: 5 } },
 });
 
@@ -29,6 +31,16 @@ const state = {
   realtimeChannel: null,
   refreshTimer: null,
   midnightTimer: null,
+  adminBookings: [],
+  adminProcedures: [],
+  adminSession: null,
+  adminVerified: false,
+  adminLoaded: false,
+  adminSearchQuery: "",
+  adminSourceFilter: "All",
+  adminStatusFilter: "All",
+  adminRefreshTimer: null,
+  pendingDeleteId: null,
 };
 
 const elements = {
@@ -63,10 +75,41 @@ const elements = {
   wardCount: document.querySelector("#ward-count"),
   navCount: document.querySelector("#nav-count"),
   toastRegion: document.querySelector("#toast-region"),
+  adminEntry: document.querySelector(".admin-entry"),
+  adminLoginPanel: document.querySelector("#admin-login-panel"),
+  adminLoginForm: document.querySelector("#admin-login-form"),
+  adminEmail: document.querySelector("#admin-email"),
+  adminPassword: document.querySelector("#admin-password"),
+  togglePassword: document.querySelector("#toggle-password"),
+  adminLoginButton: document.querySelector("#admin-login-button"),
+  adminLoginError: document.querySelector("#admin-login-error"),
+  adminDashboard: document.querySelector("#admin-dashboard"),
+  adminAccountEmail: document.querySelector("#admin-account-email"),
+  adminLogout: document.querySelector("#admin-logout"),
+  adminSearch: document.querySelector("#admin-search"),
+  adminSourceFilter: document.querySelector("#admin-source-filter"),
+  adminStatusFilter: document.querySelector("#admin-status-filter"),
+  adminRefresh: document.querySelector("#admin-refresh"),
+  adminRetry: document.querySelector("#admin-retry"),
+  adminLoading: document.querySelector("#admin-loading"),
+  adminError: document.querySelector("#admin-error"),
+  adminEmpty: document.querySelector("#admin-empty"),
+  adminNoResults: document.querySelector("#admin-no-results"),
+  adminResults: document.querySelector("#admin-results"),
+  adminTableBody: document.querySelector("#admin-table-body"),
+  adminLastUpdated: document.querySelector("#admin-last-updated"),
+  adminTotalCount: document.querySelector("#admin-total-count"),
+  adminNewCount: document.querySelector("#admin-new-count"),
+  adminReadyCount: document.querySelector("#admin-ready-count"),
+  adminDoneCount: document.querySelector("#admin-done-count"),
+  adminCancelCount: document.querySelector("#admin-cancel-count"),
+  deleteDialog: document.querySelector("#delete-dialog"),
+  deleteDialogCopy: document.querySelector("#delete-dialog-copy"),
+  confirmDelete: document.querySelector("#confirm-delete"),
 };
 
 function setView(viewName, updateHistory = true) {
-  const resolved = viewName === "list" ? "list" : "booking";
+  const resolved = ["booking", "list", "admin"].includes(viewName) ? viewName : "booking";
   elements.views.forEach((view) => {
     const active = view.id === `${resolved}-view`;
     view.classList.toggle("active", active);
@@ -75,10 +118,12 @@ function setView(viewName, updateHistory = true) {
   elements.navLinks.forEach((button) => {
     button.classList.toggle("active", button.dataset.view === resolved);
   });
+  elements.adminEntry.classList.toggle("active", resolved === "admin");
   if (updateHistory) history.replaceState(null, "", `#${resolved}`);
   if (resolved === "list") {
     fetchBookings({ silent: state.listLoaded });
   }
+  if (resolved === "admin") prepareAdminView();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -295,7 +340,13 @@ async function fetchBookings({ silent = false } = {}) {
     "booking_procedures(procedure_id,procedures(name,uses_bed))",
   ].join(",");
 
-  const { data, error } = await supabase.from("bookings").select(columns).order("booked_at", { ascending: false });
+  const today = malaysiaTodayBounds();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(columns)
+    .gte("booked_at", today.start)
+    .lt("booked_at", today.end)
+    .order("booked_at", { ascending: false });
   elements.refreshButton.classList.remove("loading");
 
   if (error) {
@@ -438,6 +489,437 @@ function createBookingCard(booking) {
   return card;
 }
 
+async function prepareAdminView() {
+  if (state.adminVerified && state.adminSession) {
+    showAdminDashboard();
+    if (!state.adminLoaded) await fetchAdminBookings();
+    return;
+  }
+  showAdminLogin();
+}
+
+function showAdminLogin() {
+  elements.adminLoginPanel.hidden = false;
+  elements.adminDashboard.hidden = true;
+}
+
+function showAdminDashboard() {
+  elements.adminLoginPanel.hidden = true;
+  elements.adminDashboard.hidden = false;
+  elements.adminAccountEmail.textContent = state.adminSession?.user?.email ?? "orlprosedur@gmail.com";
+}
+
+function setAdminLoginLoading(loading) {
+  elements.adminLoginButton.disabled = loading;
+  elements.adminLoginButton.classList.toggle("loading", loading);
+  elements.adminLoginButton.setAttribute("aria-busy", String(loading));
+}
+
+async function verifyAdminSession(session) {
+  if (!session) {
+    state.adminSession = null;
+    state.adminVerified = false;
+    state.adminLoaded = false;
+    showAdminLogin();
+    return false;
+  }
+
+  const { data, error } = await supabase.rpc("is_admin");
+  if (error || data !== true) {
+    await supabase.auth.signOut();
+    state.adminSession = null;
+    state.adminVerified = false;
+    state.adminLoaded = false;
+    showAdminLogin();
+    return false;
+  }
+
+  state.adminSession = session;
+  state.adminVerified = true;
+  showAdminDashboard();
+  return true;
+}
+
+async function handleAdminLogin(event) {
+  event.preventDefault();
+  elements.adminLoginError.textContent = "";
+  if (!elements.adminPassword.value) {
+    elements.adminLoginError.textContent = "Masukkan password Admin.";
+    elements.adminPassword.focus();
+    return;
+  }
+
+  setAdminLoginLoading(true);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: elements.adminEmail.value,
+    password: elements.adminPassword.value,
+  });
+
+  if (error || !(await verifyAdminSession(data.session))) {
+    elements.adminLoginError.textContent = "Email atau password tidak sah.";
+    setAdminLoginLoading(false);
+    return;
+  }
+
+  elements.adminPassword.value = "";
+  setAdminLoginLoading(false);
+  showToast("Admin berjaya log masuk", "Rekod sejarah kini boleh diuruskan.");
+  await fetchAdminBookings();
+}
+
+async function handleAdminLogout() {
+  elements.adminLogout.disabled = true;
+  await supabase.auth.signOut();
+  state.adminSession = null;
+  state.adminVerified = false;
+  state.adminLoaded = false;
+  state.adminBookings = [];
+  elements.adminLogout.disabled = false;
+  showAdminLogin();
+  showToast("Admin telah log keluar", "Akses pengurusan ditutup pada peranti ini.");
+}
+
+async function loadAdminProcedureCatalog() {
+  const { data, error } = await supabase
+    .from("procedures")
+    .select("id,name,uses_bed,active,display_order")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  const usageRank = new Map(state.procedures.map((procedure, index) => [procedure.id, index]));
+  state.adminProcedures = (data ?? []).sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
+    if (a.active && b.active) {
+      return (usageRank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (usageRank.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+    }
+    return a.name.localeCompare(b.name);
+  });
+}
+
+async function fetchAdminBookings({ silent = false } = {}) {
+  if (!state.adminVerified) return;
+  if (!silent) showAdminState("loading");
+  elements.adminRefresh.classList.add("loading");
+
+  const columns = [
+    "id",
+    "booked_at",
+    "doctor",
+    "patient_name",
+    "subspecialty",
+    "affected_regions",
+    "patient_source",
+    "notes",
+    "status",
+    "updated_at",
+    "revision",
+    "booking_procedures(procedure_id,procedures(name,uses_bed,active))",
+  ].join(",");
+
+  try {
+    const records = [];
+    const pageSize = 1000;
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(columns)
+        .order("booked_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      records.push(...(data ?? []));
+      if ((data ?? []).length < pageSize) break;
+    }
+    await loadAdminProcedureCatalog();
+    state.adminBookings = records.map(normalizeBooking);
+    state.adminLoaded = true;
+    updateAdminSummary();
+    renderAdminBookings();
+    elements.adminLastUpdated.textContent = formatTime(new Date());
+  } catch (error) {
+    if (!state.adminLoaded) showAdminState("error");
+    showToast("Rekod Admin tidak dapat dimuatkan", readableError(error), "error");
+  } finally {
+    elements.adminRefresh.classList.remove("loading");
+  }
+}
+
+function updateAdminSummary() {
+  const count = (status) => state.adminBookings.filter((booking) => booking.status === status).length;
+  elements.adminTotalCount.textContent = String(state.adminBookings.length);
+  elements.adminNewCount.textContent = String(count("NEW"));
+  elements.adminReadyCount.textContent = String(count("READY"));
+  elements.adminDoneCount.textContent = String(count("DONE"));
+  elements.adminCancelCount.textContent = String(count("CANCEL"));
+}
+
+function showAdminState(kind) {
+  elements.adminLoading.hidden = kind !== "loading";
+  elements.adminError.hidden = kind !== "error";
+  elements.adminEmpty.hidden = kind !== "empty";
+  elements.adminNoResults.hidden = kind !== "no-results";
+  elements.adminResults.hidden = kind !== "results";
+}
+
+function renderAdminBookings() {
+  const filtered = filterAdminBookings(
+    state.adminBookings,
+    state.adminSearchQuery,
+    state.adminSourceFilter,
+    state.adminStatusFilter,
+  );
+  if (!state.adminBookings.length) {
+    showAdminState("empty");
+    return;
+  }
+  if (!filtered.length) {
+    showAdminState("no-results");
+    return;
+  }
+
+  showAdminState("results");
+  elements.adminTableBody.replaceChildren(...filtered.map(createAdminRow));
+}
+
+function createLockedCell(value) {
+  const cell = textCell(value);
+  cell.classList.add("locked-cell");
+  return cell;
+}
+
+function createAdminRow(booking) {
+  const row = document.createElement("tr");
+  row.className = bookingRowClass(booking);
+  row.dataset.bookingId = booking.id;
+
+  const procedureCell = document.createElement("td");
+  procedureCell.className = "procedure-cell";
+  procedureCell.append(createAdminProcedureEditor(booking, row));
+
+  const regionCell = document.createElement("td");
+  regionCell.className = "locked-cell";
+  regionCell.append(createTagList(booking.affected_regions));
+
+  const notesCell = document.createElement("td");
+  const notesInput = document.createElement("textarea");
+  notesInput.className = "admin-notes-input";
+  notesInput.value = booking.notes;
+  notesInput.maxLength = 4000;
+  notesInput.rows = 2;
+  notesInput.setAttribute("aria-label", `Edit notes for ${booking.patient_name}`);
+  notesInput.dataset.original = booking.notes;
+  notesInput.addEventListener("blur", async () => {
+    if (notesInput.value === notesInput.dataset.original) return;
+    const saved = await updateAdminBooking(booking.id, { notes: notesInput.value }, row);
+    if (saved) notesInput.dataset.original = notesInput.value;
+    else notesInput.value = notesInput.dataset.original;
+  });
+  notesCell.append(notesInput);
+
+  const statusCell = document.createElement("td");
+  const statusSelect = document.createElement("select");
+  statusSelect.className = "admin-status-select";
+  statusSelect.setAttribute("aria-label", `Status for ${booking.patient_name}`);
+  ["NEW", "READY", "DONE", "CANCEL"].forEach((status) => {
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = status;
+    option.selected = status === booking.status;
+    statusSelect.append(option);
+  });
+  statusSelect.addEventListener("change", async () => {
+    const previous = booking.status;
+    const saved = await updateAdminBooking(booking.id, { status: statusSelect.value }, row);
+    if (!saved) statusSelect.value = previous;
+  });
+  statusCell.append(statusSelect);
+
+  const deleteCell = document.createElement("td");
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "delete-row-button";
+  deleteButton.setAttribute("aria-label", `Delete booking for ${booking.patient_name}`);
+  deleteButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg>';
+  deleteButton.addEventListener("click", () => openDeleteDialog(booking.id));
+  deleteCell.append(deleteButton);
+
+  row.append(
+    createLockedCell(formatDateTime(booking.booked_at)),
+    createLockedCell(booking.doctor),
+    createLockedCell(booking.patient_name),
+    createLockedCell(booking.subspecialty),
+    procedureCell,
+    regionCell,
+    createLockedCell(booking.patient_source),
+    notesCell,
+    statusCell,
+    deleteCell,
+  );
+  return row;
+}
+
+function createAdminProcedureEditor(booking, row) {
+  const wrapper = document.createElement("div");
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "editable-procedure";
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.setAttribute("aria-label", `Edit procedures for ${booking.patient_name}`);
+  trigger.append(createTagList(booking.procedures.map((item) => item.name)));
+
+  const editor = document.createElement("div");
+  editor.className = "procedure-editor";
+  editor.hidden = true;
+  const search = document.createElement("input");
+  search.type = "search";
+  search.className = "procedure-editor-search";
+  search.placeholder = "Search procedure";
+  search.setAttribute("aria-label", "Search procedure options");
+  const options = document.createElement("div");
+  options.className = "procedure-editor-options";
+  const selected = new Set(booking.procedures.map((procedure) => procedure.id));
+
+  const renderOptions = () => {
+    const query = search.value.trim().toLowerCase();
+    options.replaceChildren();
+    state.adminProcedures
+      .filter((procedure) => procedure.name.toLowerCase().includes(query))
+      .forEach((procedure) => {
+        const label = document.createElement("label");
+        label.className = "procedure-editor-option";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = procedure.id;
+        checkbox.checked = selected.has(procedure.id);
+        checkbox.disabled = !procedure.active && !selected.has(procedure.id);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) selected.add(procedure.id);
+          else selected.delete(procedure.id);
+        });
+        const name = document.createElement("span");
+        name.textContent = procedure.active ? procedure.name : `${procedure.name} (archived)`;
+        label.append(checkbox, name);
+        options.append(label);
+      });
+  };
+  renderOptions();
+  search.addEventListener("input", renderOptions);
+
+  const actions = document.createElement("div");
+  actions.className = "procedure-editor-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  const save = document.createElement("button");
+  save.type = "button";
+  save.textContent = "Save";
+  const close = () => {
+    editor.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  };
+  cancel.addEventListener("click", close);
+  save.addEventListener("click", async () => {
+    if (!selected.size) {
+      showToast("Procedure diperlukan", "Pilih sekurang-kurangnya satu prosedur.", "error");
+      return;
+    }
+    const saved = await updateAdminBooking(booking.id, { procedureIds: [...selected] }, row);
+    if (saved) close();
+  });
+  actions.append(cancel, save);
+  editor.append(search, options, actions);
+
+  trigger.addEventListener("click", () => {
+    document.querySelectorAll(".procedure-editor:not([hidden])").forEach((openEditor) => {
+      if (openEditor !== editor) openEditor.hidden = true;
+    });
+    editor.hidden = !editor.hidden;
+    trigger.setAttribute("aria-expanded", String(!editor.hidden));
+    if (!editor.hidden) search.focus();
+  });
+  wrapper.append(trigger, editor);
+  return wrapper;
+}
+
+async function updateAdminBooking(bookingId, patch, row) {
+  const booking = state.adminBookings.find((item) => item.id === bookingId);
+  if (!booking || row.classList.contains("saving")) return false;
+  row.classList.remove("save-error");
+  row.classList.add("saving");
+  row.querySelectorAll("button,select,textarea,input").forEach((control) => { control.disabled = true; });
+
+  const { data, error } = await supabase.rpc("update_booking", {
+    p_booking_id: booking.id,
+    p_expected_revision: booking.revision,
+    p_procedure_ids: patch.procedureIds ?? null,
+    p_notes: Object.hasOwn(patch, "notes") ? patch.notes : null,
+    p_status: patch.status ?? null,
+  });
+
+  if (error) {
+    row.classList.add("save-error");
+    showToast(
+      "Perubahan tidak disimpan",
+      /changed|40001/i.test(String(error.message))
+        ? "Rekod telah berubah pada peranti lain. Senarai akan dimuat semula."
+        : readableError(error),
+      "error",
+    );
+    await fetchAdminBookings({ silent: true });
+    return false;
+  }
+
+  booking.revision = data;
+  if (Object.hasOwn(patch, "notes")) booking.notes = patch.notes;
+  if (patch.status) booking.status = patch.status;
+  if (patch.procedureIds) {
+    booking.procedures = patch.procedureIds
+      .map((id) => state.adminProcedures.find((procedure) => procedure.id === id))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    booking.procedureSearch = booking.procedures.map((procedure) => procedure.name).join(" ").toLowerCase();
+  }
+  updateAdminSummary();
+  renderAdminBookings();
+  showToast("Perubahan disimpan", "Booking telah dikemas kini.");
+  return true;
+}
+
+function openDeleteDialog(bookingId) {
+  const booking = state.adminBookings.find((item) => item.id === bookingId);
+  if (!booking) return;
+  state.pendingDeleteId = bookingId;
+  elements.deleteDialogCopy.textContent = `${booking.patient_name} akan disembunyikan daripada senarai dan statistik. Rekod masih boleh dipulihkan melalui database.`;
+  elements.deleteDialog.showModal();
+}
+
+async function deleteAdminBooking() {
+  const booking = state.adminBookings.find((item) => item.id === state.pendingDeleteId);
+  if (!booking) return;
+  elements.confirmDelete.disabled = true;
+  const { error } = await supabase.rpc("delete_booking", {
+    p_booking_id: booking.id,
+    p_expected_revision: booking.revision,
+  });
+  elements.confirmDelete.disabled = false;
+  if (error) {
+    showToast("Booking tidak dapat dipadam", readableError(error), "error");
+    elements.deleteDialog.close();
+    await fetchAdminBookings({ silent: true });
+    return;
+  }
+  state.adminBookings = state.adminBookings.filter((item) => item.id !== booking.id);
+  state.pendingDeleteId = null;
+  elements.deleteDialog.close();
+  updateAdminSummary();
+  renderAdminBookings();
+  showToast("Booking dipadam", "Rekod disembunyikan dan masih boleh dipulihkan.");
+}
+
+function scheduleAdminRefresh() {
+  if (!state.adminVerified) return;
+  window.clearTimeout(state.adminRefreshTimer);
+  state.adminRefreshTimer = window.setTimeout(() => fetchAdminBookings({ silent: true }), 300);
+}
+
 function scheduleRefresh() {
   window.clearTimeout(state.refreshTimer);
   state.refreshTimer = window.setTimeout(() => fetchBookings({ silent: true }), 220);
@@ -448,8 +930,14 @@ function startRealtime() {
   setConnection("connecting");
   state.realtimeChannel = supabase
     .channel("staff-booking-list")
-    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, scheduleRefresh)
-    .on("postgres_changes", { event: "*", schema: "public", table: "booking_procedures" }, scheduleRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+      scheduleRefresh();
+      scheduleAdminRefresh();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "booking_procedures" }, () => {
+      scheduleRefresh();
+      scheduleAdminRefresh();
+    })
     .subscribe((status) => {
       if (status === "SUBSCRIBED") setConnection("online");
       if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setConnection("offline");
@@ -532,6 +1020,32 @@ function bindEvents() {
   });
   elements.refreshButton.addEventListener("click", () => fetchBookings({ silent: state.listLoaded }));
   elements.retryList.addEventListener("click", () => fetchBookings());
+  elements.adminLoginForm.addEventListener("submit", handleAdminLogin);
+  elements.togglePassword.addEventListener("click", () => {
+    const showing = elements.adminPassword.type === "text";
+    elements.adminPassword.type = showing ? "password" : "text";
+    elements.togglePassword.textContent = showing ? "Show" : "Hide";
+    elements.togglePassword.setAttribute("aria-label", showing ? "Tunjukkan password" : "Sembunyikan password");
+  });
+  elements.adminLogout.addEventListener("click", handleAdminLogout);
+  elements.adminSearch.addEventListener("input", () => {
+    state.adminSearchQuery = elements.adminSearch.value;
+    renderAdminBookings();
+  });
+  elements.adminSourceFilter.addEventListener("change", () => {
+    state.adminSourceFilter = elements.adminSourceFilter.value;
+    renderAdminBookings();
+  });
+  elements.adminStatusFilter.addEventListener("change", () => {
+    state.adminStatusFilter = elements.adminStatusFilter.value;
+    renderAdminBookings();
+  });
+  elements.adminRefresh.addEventListener("click", () => fetchAdminBookings({ silent: state.adminLoaded }));
+  elements.adminRetry.addEventListener("click", () => fetchAdminBookings());
+  elements.confirmDelete.addEventListener("click", (event) => {
+    event.preventDefault();
+    deleteAdminBooking();
+  });
   window.addEventListener("hashchange", () => setView(location.hash.slice(1), false));
   window.addEventListener("online", () => {
     startRealtime();
@@ -539,7 +1053,10 @@ function bindEvents() {
   });
   window.addEventListener("offline", () => setConnection("offline"));
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") fetchBookings({ silent: state.listLoaded });
+    if (document.visibilityState === "visible") {
+      fetchBookings({ silent: state.listLoaded });
+      if (state.adminVerified) fetchAdminBookings({ silent: state.adminLoaded });
+    }
   });
 }
 
@@ -549,9 +1066,36 @@ async function initialise() {
   setView(location.hash.slice(1), false);
   scheduleMidnightReset();
   startRealtime();
+  window.setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    fetchBookings({ silent: state.listLoaded });
+    if (state.adminVerified) fetchAdminBookings({ silent: state.adminLoaded });
+  }, 30_000);
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    window.setTimeout(async () => {
+      if (!session) {
+        state.adminSession = null;
+        state.adminVerified = false;
+        state.adminLoaded = false;
+        if (location.hash === "#admin") showAdminLogin();
+        return;
+      }
+      if (!state.adminVerified || state.adminSession?.access_token !== session.access_token) {
+        await verifyAdminSession(session);
+      }
+    }, 0);
+  });
 
   try {
-    await Promise.all([loadProcedureCatalog(), fetchBookings()]);
+    const [{ data: sessionData }] = await Promise.all([
+      supabase.auth.getSession(),
+      loadProcedureCatalog(),
+      fetchBookings(),
+    ]);
+    if (sessionData.session && (await verifyAdminSession(sessionData.session)) && location.hash === "#admin") {
+      await fetchAdminBookings();
+    }
   } catch (error) {
     setConnection("offline");
     showToast("Sistem tidak dapat dimuatkan", readableError(error), "error");

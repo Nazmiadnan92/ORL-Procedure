@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   bookingRowClass,
+  filterAdminBookings,
   filterBookings,
   formatDateTime,
   millisecondsUntilMalaysiaMidnight,
+  malaysiaTodayBounds,
   normalizeBooking,
   readableError,
 } from "../assets/lib.js";
@@ -27,7 +29,15 @@ const base = {
 test("normalizes nested procedure records alphabetically", () => {
   const booking = normalizeBooking(base);
   assert.deepEqual(booking.procedures.map((item) => item.name), ["0°", "EUM"]);
+  assert.deepEqual(booking.procedures.map((item) => item.id), ["p1", "p2"]);
   assert.equal(booking.procedureSearch, "0° eum");
+});
+
+test("filters Admin history by source and status", () => {
+  const first = normalizeBooking(base);
+  const second = normalizeBooking({ ...base, id: "booking-2", patient_source: "Ward", status: "DONE" });
+  assert.deepEqual(filterAdminBookings([first, second], "", "Ward", "DONE").map((item) => item.id), ["booking-2"]);
+  assert.equal(filterAdminBookings([first, second], "Azlina", "All", "NEW").length, 1);
 });
 
 test("applies the agreed clinic and ward bed colours", () => {
@@ -66,4 +76,11 @@ test("returns a useful network error", () => {
 test("calculates a future Malaysia midnight interval", () => {
   const interval = millisecondsUntilMalaysiaMidnight(new Date("2026-11-19T15:59:50.000Z"));
   assert.equal(interval, 10_000);
+});
+
+test("builds exact Malaysia day bounds for the Staff list", () => {
+  assert.deepEqual(malaysiaTodayBounds(new Date("2026-11-19T18:00:00.000Z")), {
+    start: "2026-11-19T16:00:00.000Z",
+    end: "2026-11-20T16:00:00.000Z",
+  });
 });
