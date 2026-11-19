@@ -36,8 +36,8 @@ Staff uses the public application role without creating an Auth account.
 apply remote configuration.
 
 The live SQL integration suite passed on 19 November 2026. All test bookings
-and test Auth identities were rolled back. Provision the real Admin through
-Authentication > Users > Add user > Create new user, with Auto confirm user
-enabled. The owner enters the password privately in Supabase.
+and test Auth identities were rolled back. The owner provisioned the real Admin
+`orlprosedur@gmail.com` through the dashboard with a privately entered password.
+The confirmed identity is linked to the Admin entry.
 
 Keep patient exports and secret keys outside this public repository.

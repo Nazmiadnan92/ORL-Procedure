@@ -73,9 +73,13 @@ do $$ begin
 end $$;
 reset role;
 
--- Confirming the whitelisted identity binds only that user as Admin.
-insert into auth.users(id,email,aud,role,email_confirmed_at,raw_app_meta_data,raw_user_meta_data)
-values ('00000000-0000-4000-a000-000000000201','orlprosedur@gmail.com','authenticated','authenticated',now(),'{}','{}');
+-- Reuse the provisioned Admin, or create a temporary identity before provisioning.
+do $$ begin
+  if not exists (select 1 from public.admins where email='orlprosedur@gmail.com' and user_id is not null) then
+    insert into auth.users(id,email,aud,role,email_confirmed_at,raw_app_meta_data,raw_user_meta_data)
+    values ('00000000-0000-4000-a000-000000000201','orlprosedur@gmail.com','authenticated','authenticated',now(),'{}','{}');
+  end if;
+end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-a000-000000000202","role":"authenticated"}',true);
 set local role authenticated;
 do $$ begin
@@ -87,7 +91,8 @@ do $$ begin
 end $$;
 reset role;
 
-select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-a000-000000000201","role":"authenticated"}',true);
+select set_config('request.jwt.claims',
+  (select jsonb_build_object('sub',user_id,'role','authenticated')::text from public.admins where email='orlprosedur@gmail.com'),true);
 set local role authenticated;
 do $$
 declare v_id uuid := '00000000-0000-4000-a000-000000000101'; v_revision integer;
