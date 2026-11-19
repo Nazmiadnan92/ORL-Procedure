@@ -1,0 +1,6 @@
+project_id = "ORL-Procedure"
+
+[auth]
+site_url = "https://nazmiadnan92.github.io/ORL-Procedure/"
+additional_redirect_urls = ["http://localhost:5173/", "http://localhost:5173/**"]
+enable_signup = false
