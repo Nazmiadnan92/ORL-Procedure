@@ -1722,6 +1722,10 @@ tr.row-ward-bed td.procedure-cell,
   white-space: normal;
 }
 
+.admin-table tbody tr:hover td {
+  filter: none;
+}
+
 .admin-table th {
   z-index: 4;
 }
