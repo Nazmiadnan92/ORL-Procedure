@@ -11,5 +11,6 @@ Responsive booking system for ORL procedures, backed by Supabase.
 - Phase 4: monthly Clinic and Ward statistics by subspecialty and procedure
 - Phase 5: idempotent migration of the verified legacy Google Sheet history
 - Phase 6: public production deployment through GitHub Pages
+- Phase 7: paginated Admin records, server-side monthly statistics and event-driven refresh
 
-Development notes are in `phase1.md` through `phase6.md`.
+Development notes are in `phase1.md` through `phase7.md`.

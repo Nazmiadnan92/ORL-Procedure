@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=1.1.0" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Terus ke kandungan</a>
@@ -394,19 +394,21 @@
                 <thead>
                   <tr>
                     <th>Timestamp</th>
-                    <th>Doctor</th>
-                    <th>Patient Name</th>
-                    <th>Subspecialty</th>
+                    <th>Patient / Doctor</th>
+                    <th>Subspecialty / Source</th>
                     <th>Procedure <small>Click to edit</small></th>
-                    <th>Affected Region</th>
-                    <th>Source</th>
+                    <th>Region</th>
                     <th>Notes <small>Click to edit</small></th>
-                    <th>Status</th>
-                    <th><span class="sr-only">Delete</span></th>
+                    <th>Status / Delete</th>
                   </tr>
                 </thead>
                 <tbody id="admin-table-body"></tbody>
               </table>
+              <nav class="admin-pagination" aria-label="Admin booking pages">
+                <button id="admin-page-previous" class="secondary-button compact-button" type="button">Previous</button>
+                <span id="admin-page-info" aria-live="polite">Page 1 of 1</span>
+                <button id="admin-page-next" class="secondary-button compact-button" type="button">Next</button>
+              </nav>
             </div>
             </div>
 
@@ -516,6 +518,6 @@
       <div class="noscript-message">Sila aktifkan JavaScript untuk menggunakan sistem booking ini.</div>
     </noscript>
 
-    <script type="module" src="./assets/app.js"></script>
+    <script type="module" src="./assets/app.js?v=1.1.0"></script>
   </body>
 </html>

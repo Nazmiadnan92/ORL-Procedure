@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 import {
   bookingRowClass,
-  filterAdminBookings,
   filterBookings,
   formatDateTime,
   formatTime,
@@ -9,7 +8,6 @@ import {
   malaysiaMonthYear,
   malaysiaTodayBounds,
   millisecondsUntilMalaysiaMidnight,
-  monthlyStatistics,
   normalizeBooking,
   readableError,
 } from "./lib.js";
@@ -38,14 +36,23 @@ const state = {
   adminSession: null,
   adminVerified: false,
   adminLoaded: false,
+  adminSummary: { total: 0, new_count: 0, ready_count: 0, done_count: 0, cancel_count: 0 },
   adminSearchQuery: "",
   adminSourceFilter: "All",
   adminStatusFilter: "All",
+  adminPage: 1,
+  adminPageSize: 100,
+  adminFilteredCount: 0,
+  adminRequestId: 0,
+  adminQueryTimer: null,
   adminRefreshTimer: null,
   pendingDeleteId: null,
   adminSection: "bookings",
   statsMonth: malaysiaMonthYear(new Date()).month,
   statsYear: malaysiaMonthYear(new Date()).year,
+  statsData: null,
+  statsLoadedKey: "",
+  statsRequestId: 0,
 };
 
 const elements = {
@@ -102,6 +109,9 @@ const elements = {
   adminNoResults: document.querySelector("#admin-no-results"),
   adminResults: document.querySelector("#admin-results"),
   adminTableBody: document.querySelector("#admin-table-body"),
+  adminPagePrevious: document.querySelector("#admin-page-previous"),
+  adminPageNext: document.querySelector("#admin-page-next"),
+  adminPageInfo: document.querySelector("#admin-page-info"),
   adminLastUpdated: document.querySelector("#admin-last-updated"),
   adminTotalCount: document.querySelector("#admin-total-count"),
   adminNewCount: document.querySelector("#admin-new-count"),
@@ -513,7 +523,9 @@ function createBookingCard(booking) {
 async function prepareAdminView() {
   if (state.adminVerified && state.adminSession) {
     showAdminDashboard();
-    if (!state.adminLoaded) await fetchAdminBookings();
+    if (!state.adminLoaded) {
+      await Promise.all([fetchAdminBookings(), populateStatsYears()]);
+    }
     return;
   }
   showAdminLogin();
@@ -585,7 +597,7 @@ async function handleAdminLogin(event) {
   elements.adminPassword.value = "";
   setAdminLoginLoading(false);
   showToast("Admin berjaya log masuk", "Rekod sejarah kini boleh diuruskan.");
-  await fetchAdminBookings();
+  await Promise.all([fetchAdminBookings(), populateStatsYears()]);
 }
 
 async function handleAdminLogout() {
@@ -595,6 +607,8 @@ async function handleAdminLogout() {
   state.adminVerified = false;
   state.adminLoaded = false;
   state.adminBookings = [];
+  state.statsData = null;
+  state.statsLoadedKey = "";
   elements.adminLogout.disabled = false;
   showAdminLogin();
   showToast("Admin telah log keluar", "Akses pengurusan ditutup pada peranti ini.");
@@ -616,62 +630,59 @@ async function loadAdminProcedureCatalog() {
   });
 }
 
-async function fetchAdminBookings({ silent = false } = {}) {
+async function fetchAdminBookings({ silent = false, resetPage = false } = {}) {
   if (!state.adminVerified) return;
+  if (resetPage) state.adminPage = 1;
+  const requestId = ++state.adminRequestId;
   if (!silent) showAdminState("loading");
   elements.adminRefresh.classList.add("loading");
 
-  const columns = [
-    "id",
-    "booked_at",
-    "doctor",
-    "patient_name",
-    "subspecialty",
-    "affected_regions",
-    "patient_source",
-    "notes",
-    "status",
-    "updated_at",
-    "revision",
-    "booking_procedures(procedure_id,procedures(name,uses_bed,active))",
-  ].join(",");
-
   try {
-    const records = [];
-    const pageSize = 1000;
-    for (let from = 0; ; from += pageSize) {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(columns)
-        .order("booked_at", { ascending: false })
-        .range(from, from + pageSize - 1);
-      if (error) throw error;
-      records.push(...(data ?? []));
-      if ((data ?? []).length < pageSize) break;
+    const { data, error } = await supabase.rpc("admin_booking_page", {
+      p_page: state.adminPage,
+      p_page_size: state.adminPageSize,
+      p_query: state.adminSearchQuery,
+      p_source: state.adminSourceFilter,
+      p_status: state.adminStatusFilter,
+    });
+    if (error) throw error;
+    if (requestId !== state.adminRequestId) return;
+    if (!state.adminProcedures.length) await loadAdminProcedureCatalog();
+    if (requestId !== state.adminRequestId) return;
+
+    state.adminFilteredCount = Number(data?.filtered_count ?? 0);
+    const totalPages = Math.max(1, Math.ceil(state.adminFilteredCount / state.adminPageSize));
+    if (state.adminPage > totalPages) {
+      state.adminPage = totalPages;
+      return fetchAdminBookings({ silent: true });
     }
-    await loadAdminProcedureCatalog();
-    state.adminBookings = records.map(normalizeBooking);
+    state.adminBookings = (data?.records ?? []).map(normalizeBooking);
+    state.adminSummary = {
+      total: Number(data?.summary?.total ?? 0),
+      new_count: Number(data?.summary?.new_count ?? 0),
+      ready_count: Number(data?.summary?.ready_count ?? 0),
+      done_count: Number(data?.summary?.done_count ?? 0),
+      cancel_count: Number(data?.summary?.cancel_count ?? 0),
+    };
     state.adminLoaded = true;
     updateAdminSummary();
-    populateStatsYears();
-    renderMonthlyStatistics();
     renderAdminBookings();
     elements.adminLastUpdated.textContent = formatTime(new Date());
   } catch (error) {
+    if (requestId !== state.adminRequestId) return;
     if (!state.adminLoaded) showAdminState("error");
     showToast("Rekod Admin tidak dapat dimuatkan", readableError(error), "error");
   } finally {
-    elements.adminRefresh.classList.remove("loading");
+    if (requestId === state.adminRequestId) elements.adminRefresh.classList.remove("loading");
   }
 }
 
 function updateAdminSummary() {
-  const count = (status) => state.adminBookings.filter((booking) => booking.status === status).length;
-  elements.adminTotalCount.textContent = String(state.adminBookings.length);
-  elements.adminNewCount.textContent = String(count("NEW"));
-  elements.adminReadyCount.textContent = String(count("READY"));
-  elements.adminDoneCount.textContent = String(count("DONE"));
-  elements.adminCancelCount.textContent = String(count("CANCEL"));
+  elements.adminTotalCount.textContent = String(state.adminSummary.total);
+  elements.adminNewCount.textContent = String(state.adminSummary.new_count);
+  elements.adminReadyCount.textContent = String(state.adminSummary.ready_count);
+  elements.adminDoneCount.textContent = String(state.adminSummary.done_count);
+  elements.adminCancelCount.textContent = String(state.adminSummary.cancel_count);
 }
 
 function setAdminSection(section) {
@@ -683,13 +694,17 @@ function setAdminSection(section) {
   elements.adminStatsTab.classList.toggle("active", showStats);
   elements.adminBookingsTab.setAttribute("aria-selected", String(!showStats));
   elements.adminStatsTab.setAttribute("aria-selected", String(showStats));
-  if (showStats) renderMonthlyStatistics();
+  const selectedKey = `${state.statsYear}-${state.statsMonth}`;
+  if (showStats && state.statsLoadedKey !== selectedKey) {
+    fetchMonthlyStatistics({ silent: Boolean(state.statsData) });
+  }
 }
 
-function populateStatsYears() {
+async function populateStatsYears() {
   const currentYear = malaysiaMonthYear(new Date()).year;
-  const years = new Set([currentYear]);
-  state.adminBookings.forEach((booking) => years.add(malaysiaMonthYear(booking.booked_at).year));
+  const { data, error } = await supabase.rpc("admin_statistics_years");
+  if (error) throw error;
+  const years = new Set([currentYear, ...(data ?? [])].map(Number));
   const sortedYears = [...years].sort((a, b) => b - a);
   elements.statsYear.replaceChildren(
     ...sortedYears.map((year) => {
@@ -708,8 +723,33 @@ function percentage(value, total) {
   return total ? Math.round((value / total) * 100) : 0;
 }
 
+async function fetchMonthlyStatistics({ silent = false } = {}) {
+  if (!state.adminVerified) return;
+  const key = `${state.statsYear}-${state.statsMonth}`;
+  const requestId = ++state.statsRequestId;
+  if (!silent) elements.statsPeriodLabel.textContent = "Memuatkan…";
+  const { data, error } = await supabase.rpc("admin_monthly_statistics", {
+    p_year: state.statsYear,
+    p_month: state.statsMonth,
+  });
+  if (requestId !== state.statsRequestId || key !== `${state.statsYear}-${state.statsMonth}`) return;
+  if (error) {
+    showToast("Statistik tidak dapat dimuatkan", readableError(error), "error");
+    return;
+  }
+  state.statsData = data;
+  state.statsLoadedKey = key;
+  renderMonthlyStatistics();
+}
+
 function renderMonthlyStatistics() {
-  const statistics = monthlyStatistics(state.adminBookings, state.statsMonth, state.statsYear);
+  const statistics = state.statsData ?? {
+    total: 0,
+    clinic: 0,
+    ward: 0,
+    subspecialties: [],
+    procedures: [],
+  };
   const monthName = elements.statsMonth.options[elements.statsMonth.selectedIndex]?.textContent ?? "";
   elements.statsPeriodLabel.textContent = `${monthName} ${state.statsYear}`;
   elements.statsTotal.textContent = String(statistics.total);
@@ -781,29 +821,45 @@ function showAdminState(kind) {
 }
 
 function renderAdminBookings() {
-  const filtered = filterAdminBookings(
-    state.adminBookings,
-    state.adminSearchQuery,
-    state.adminSourceFilter,
-    state.adminStatusFilter,
-  );
-  if (!state.adminBookings.length) {
+  if (state.adminSummary.total === 0) {
     showAdminState("empty");
     return;
   }
-  if (!filtered.length) {
+  if (!state.adminBookings.length) {
     showAdminState("no-results");
     return;
   }
 
   showAdminState("results");
-  elements.adminTableBody.replaceChildren(...filtered.map(createAdminRow));
+  elements.adminTableBody.replaceChildren(...state.adminBookings.map(createAdminRow));
+  updateAdminPagination();
 }
 
 function createLockedCell(value) {
   const cell = textCell(value);
   cell.classList.add("locked-cell");
   return cell;
+}
+
+function createStackedCell(primaryValue, secondaryValue, primaryLabel, secondaryLabel) {
+  const cell = document.createElement("td");
+  cell.className = "locked-cell admin-stacked-cell";
+  cell.dataset.label = primaryLabel;
+  const primary = document.createElement("strong");
+  primary.className = "admin-cell-primary";
+  primary.textContent = primaryValue;
+  const secondary = document.createElement("span");
+  secondary.className = "admin-cell-secondary";
+  secondary.textContent = `${secondaryLabel}: ${secondaryValue}`;
+  cell.append(primary, secondary);
+  return cell;
+}
+
+function updateAdminPagination() {
+  const totalPages = Math.max(1, Math.ceil(state.adminFilteredCount / state.adminPageSize));
+  elements.adminPageInfo.textContent = `Page ${state.adminPage} of ${totalPages} · ${state.adminFilteredCount} records`;
+  elements.adminPagePrevious.disabled = state.adminPage <= 1;
+  elements.adminPageNext.disabled = state.adminPage >= totalPages;
 }
 
 function createAdminRow(booking) {
@@ -813,13 +869,16 @@ function createAdminRow(booking) {
 
   const procedureCell = document.createElement("td");
   procedureCell.className = "procedure-cell";
+  procedureCell.dataset.label = "Procedure";
   procedureCell.append(createAdminProcedureEditor(booking, row));
 
   const regionCell = document.createElement("td");
   regionCell.className = "locked-cell";
+  regionCell.dataset.label = "Region";
   regionCell.append(createTagList(booking.affected_regions));
 
   const notesCell = document.createElement("td");
+  notesCell.dataset.label = "Notes";
   const notesInput = document.createElement("textarea");
   notesInput.className = "admin-notes-input";
   notesInput.value = booking.notes;
@@ -836,6 +895,8 @@ function createAdminRow(booking) {
   notesCell.append(notesInput);
 
   const statusCell = document.createElement("td");
+  statusCell.className = "admin-actions-cell";
+  statusCell.dataset.label = "Status / Delete";
   const statusSelect = document.createElement("select");
   statusSelect.className = "admin-status-select";
   statusSelect.setAttribute("aria-label", `Status for ${booking.patient_name}`);
@@ -853,26 +914,25 @@ function createAdminRow(booking) {
   });
   statusCell.append(statusSelect);
 
-  const deleteCell = document.createElement("td");
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "delete-row-button";
   deleteButton.setAttribute("aria-label", `Delete booking for ${booking.patient_name}`);
   deleteButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg>';
   deleteButton.addEventListener("click", () => openDeleteDialog(booking.id));
-  deleteCell.append(deleteButton);
+  statusCell.append(deleteButton);
+
+  const timestampCell = createLockedCell(formatDateTime(booking.booked_at));
+  timestampCell.dataset.label = "Timestamp";
 
   row.append(
-    createLockedCell(formatDateTime(booking.booked_at)),
-    createLockedCell(booking.doctor),
-    createLockedCell(booking.patient_name),
-    createLockedCell(booking.subspecialty),
+    timestampCell,
+    createStackedCell(booking.patient_name, booking.doctor, "Patient / Doctor", "Doctor"),
+    createStackedCell(booking.subspecialty, booking.patient_source, "Subspecialty / Source", "Source"),
     procedureCell,
     regionCell,
-    createLockedCell(booking.patient_source),
     notesCell,
     statusCell,
-    deleteCell,
   );
   return row;
 }
@@ -989,18 +1049,10 @@ async function updateAdminBooking(bookingId, patch, row) {
   }
 
   booking.revision = data;
-  if (Object.hasOwn(patch, "notes")) booking.notes = patch.notes;
-  if (patch.status) booking.status = patch.status;
-  if (patch.procedureIds) {
-    booking.procedures = patch.procedureIds
-      .map((id) => state.adminProcedures.find((procedure) => procedure.id === id))
-      .filter(Boolean)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    booking.procedureSearch = booking.procedures.map((procedure) => procedure.name).join(" ").toLowerCase();
-  }
-  updateAdminSummary();
-  renderMonthlyStatistics();
-  renderAdminBookings();
+  await Promise.all([
+    fetchAdminBookings({ silent: true }),
+    fetchMonthlyStatistics({ silent: true }),
+  ]);
   showToast("Perubahan disimpan", "Booking telah dikemas kini.");
   return true;
 }
@@ -1028,19 +1080,27 @@ async function deleteAdminBooking() {
     await fetchAdminBookings({ silent: true });
     return;
   }
-  state.adminBookings = state.adminBookings.filter((item) => item.id !== booking.id);
   state.pendingDeleteId = null;
   elements.deleteDialog.close();
-  updateAdminSummary();
-  renderMonthlyStatistics();
-  renderAdminBookings();
+  await Promise.all([
+    fetchAdminBookings({ silent: true }),
+    fetchMonthlyStatistics({ silent: true }),
+  ]);
   showToast("Booking dipadam", "Rekod disembunyikan dan masih boleh dipulihkan.");
 }
 
 function scheduleAdminRefresh() {
   if (!state.adminVerified) return;
   window.clearTimeout(state.adminRefreshTimer);
-  state.adminRefreshTimer = window.setTimeout(() => fetchAdminBookings({ silent: true }), 300);
+  state.adminRefreshTimer = window.setTimeout(() => {
+    const activeControl = document.activeElement;
+    if (activeControl && elements.adminTableBody.contains(activeControl)) {
+      scheduleAdminRefresh();
+      return;
+    }
+    fetchAdminBookings({ silent: true });
+    fetchMonthlyStatistics({ silent: true });
+  }, 420);
 }
 
 function scheduleRefresh() {
@@ -1155,25 +1215,42 @@ function bindEvents() {
   elements.adminStatsTab.addEventListener("click", () => setAdminSection("statistics"));
   elements.statsMonth.addEventListener("change", () => {
     state.statsMonth = Number(elements.statsMonth.value);
-    renderMonthlyStatistics();
+    state.statsLoadedKey = "";
+    fetchMonthlyStatistics();
   });
   elements.statsYear.addEventListener("change", () => {
     state.statsYear = Number(elements.statsYear.value);
-    renderMonthlyStatistics();
+    state.statsLoadedKey = "";
+    fetchMonthlyStatistics();
   });
   elements.adminSearch.addEventListener("input", () => {
     state.adminSearchQuery = elements.adminSearch.value;
-    renderAdminBookings();
+    window.clearTimeout(state.adminQueryTimer);
+    state.adminQueryTimer = window.setTimeout(() => fetchAdminBookings({ silent: true, resetPage: true }), 320);
   });
   elements.adminSourceFilter.addEventListener("change", () => {
     state.adminSourceFilter = elements.adminSourceFilter.value;
-    renderAdminBookings();
+    fetchAdminBookings({ silent: true, resetPage: true });
   });
   elements.adminStatusFilter.addEventListener("change", () => {
     state.adminStatusFilter = elements.adminStatusFilter.value;
-    renderAdminBookings();
+    fetchAdminBookings({ silent: true, resetPage: true });
   });
-  elements.adminRefresh.addEventListener("click", () => fetchAdminBookings({ silent: state.adminLoaded }));
+  elements.adminPagePrevious.addEventListener("click", () => {
+    if (state.adminPage <= 1) return;
+    state.adminPage -= 1;
+    fetchAdminBookings({ silent: true });
+  });
+  elements.adminPageNext.addEventListener("click", () => {
+    const totalPages = Math.max(1, Math.ceil(state.adminFilteredCount / state.adminPageSize));
+    if (state.adminPage >= totalPages) return;
+    state.adminPage += 1;
+    fetchAdminBookings({ silent: true });
+  });
+  elements.adminRefresh.addEventListener("click", () => {
+    fetchAdminBookings({ silent: state.adminLoaded });
+    fetchMonthlyStatistics({ silent: true });
+  });
   elements.adminRetry.addEventListener("click", () => fetchAdminBookings());
   elements.confirmDelete.addEventListener("click", (event) => {
     event.preventDefault();
@@ -1188,7 +1265,10 @@ function bindEvents() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       fetchBookings({ silent: state.listLoaded });
-      if (state.adminVerified) fetchAdminBookings({ silent: state.adminLoaded });
+      if (state.adminVerified) {
+        fetchAdminBookings({ silent: state.adminLoaded });
+        fetchMonthlyStatistics({ silent: true });
+      }
     }
   });
 }
@@ -1199,11 +1279,6 @@ async function initialise() {
   setView(location.hash.slice(1), false);
   scheduleMidnightReset();
   startRealtime();
-  window.setInterval(() => {
-    if (document.visibilityState !== "visible") return;
-    fetchBookings({ silent: state.listLoaded });
-    if (state.adminVerified) fetchAdminBookings({ silent: state.adminLoaded });
-  }, 30_000);
 
   supabase.auth.onAuthStateChange((_event, session) => {
     window.setTimeout(async () => {
@@ -1227,7 +1302,7 @@ async function initialise() {
       fetchBookings(),
     ]);
     if (sessionData.session && (await verifyAdminSession(sessionData.session)) && location.hash === "#admin") {
-      await fetchAdminBookings();
+      await Promise.all([fetchAdminBookings(), populateStatsYears()]);
     }
   } catch (error) {
     setConnection("offline");

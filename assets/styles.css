@@ -1696,13 +1696,30 @@ tr.row-ward-bed td.procedure-cell,
 }
 
 .admin-table-scroll {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 250px;
   max-height: calc(100vh - 315px);
 }
 
 .admin-table {
-  min-width: 1500px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.admin-table th:nth-child(1) { width: 12%; }
+.admin-table th:nth-child(2) { width: 14%; }
+.admin-table th:nth-child(3) { width: 13%; }
+.admin-table th:nth-child(4) { width: 20%; }
+.admin-table th:nth-child(5) { width: 10%; }
+.admin-table th:nth-child(6) { width: 17%; }
+.admin-table th:nth-child(7) { width: 14%; }
+
+.admin-table th,
+.admin-table td {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .admin-table th {
@@ -1735,9 +1752,26 @@ tr.row-ward-bed td.procedure-cell,
   color: #4e6063;
 }
 
+.admin-cell-primary,
+.admin-cell-secondary {
+  display: block;
+}
+
+.admin-cell-primary {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.admin-cell-secondary {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
 .editable-procedure {
   width: 100%;
-  min-width: 190px;
+  min-width: 0;
   padding: 7px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -1829,7 +1863,7 @@ tr.row-ward-bed td.procedure-cell,
 
 .admin-notes-input {
   width: 100%;
-  min-width: 170px;
+  min-width: 0;
   min-height: 44px;
   max-height: 120px;
   padding: 8px 9px;
@@ -1850,10 +1884,43 @@ tr.row-ward-bed td.procedure-cell,
 }
 
 .admin-status-select {
-  min-width: 106px;
+  width: calc(100% - 48px);
+  min-width: 0;
   min-height: 40px;
   padding: 7px 30px 7px 10px;
   border-color: #cfd9d6;
+}
+
+.admin-actions-cell {
+  white-space: nowrap;
+}
+
+.admin-actions-cell .delete-row-button {
+  display: inline-grid;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.admin-pagination {
+  position: sticky;
+  z-index: 5;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--soft-line);
+  background: rgb(255 255 255 / 96%);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+.admin-pagination button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .delete-row-button {
@@ -2111,6 +2178,62 @@ tr.row-ward-bed td.procedure-cell,
 
   .statistics-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-table-scroll {
+    overflow: visible;
+    max-height: none;
+    padding: 12px;
+    background: #f7f9f8;
+  }
+
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-table tr {
+    overflow: visible;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: white;
+  }
+
+  .admin-table td {
+    max-width: none;
+    padding: 11px 13px 11px 42%;
+    border-right: 0;
+  }
+
+  .admin-table td::before {
+    position: absolute;
+    left: 13px;
+    width: calc(42% - 26px);
+    color: var(--muted);
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .admin-status-select {
+    width: min(180px, calc(100% - 48px));
+  }
+
+  .admin-pagination {
+    margin: 12px -12px -12px;
   }
 }
 
