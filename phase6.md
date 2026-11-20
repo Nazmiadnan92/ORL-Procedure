@@ -11,4 +11,4 @@ The production website is published from the repository's `main` branch and root
 
 ## Cutover
 
-After verification, update `https://bookprocedure.s.gy/` to redirect to the GitHub Pages production URL. The short link remains the stable Staff-facing address even if hosting changes later.
+Production was verified at `https://nazmiadnan92.github.io/ORL-Procedure/`. The existing Staff link, `https://bookprocedure.s.gy/`, now redirects to that production URL. The short link remains the stable Staff-facing address even if hosting changes later.
