@@ -1790,12 +1790,15 @@ tr.row-ward-bed td.procedure-cell,
   pointer-events: none;
 }
 
+.procedure-editor-anchor {
+  min-width: 0;
+}
+
 .procedure-editor {
-  position: absolute;
-  z-index: 15;
-  top: calc(100% - 6px);
-  left: 7px;
-  width: 290px;
+  position: fixed;
+  z-index: 70;
+  width: 320px;
+  max-width: calc(100vw - 24px);
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 12px;

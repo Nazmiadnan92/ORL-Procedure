@@ -939,6 +939,7 @@ function createAdminRow(booking) {
 
 function createAdminProcedureEditor(booking, row) {
   const wrapper = document.createElement("div");
+  wrapper.className = "procedure-editor-anchor";
   const trigger = document.createElement("button");
   trigger.type = "button";
   trigger.className = "editable-procedure";
@@ -992,10 +993,39 @@ function createAdminProcedureEditor(booking, row) {
   const save = document.createElement("button");
   save.type = "button";
   save.textContent = "Save";
+
+  const positionEditor = () => {
+    if (editor.hidden) return;
+    const triggerRect = trigger.getBoundingClientRect();
+    const viewportGap = 12;
+    const preferredWidth = 320;
+    const width = Math.min(preferredWidth, window.innerWidth - (viewportGap * 2));
+    const left = Math.min(
+      Math.max(viewportGap, triggerRect.left),
+      window.innerWidth - width - viewportGap,
+    );
+    editor.style.width = `${width}px`;
+    editor.style.left = `${left}px`;
+    const editorHeight = Math.min(editor.scrollHeight, window.innerHeight - (viewportGap * 2));
+    const spaceBelow = window.innerHeight - triggerRect.bottom - viewportGap;
+    const top = spaceBelow >= editorHeight
+      ? triggerRect.bottom + 6
+      : Math.max(viewportGap, triggerRect.top - editorHeight - 6);
+    editor.style.top = `${top}px`;
+  };
+
+  const closeOnOutsideClick = (event) => {
+    if (!wrapper.contains(event.target)) close();
+  };
+  const closeOnTableScroll = () => close();
   const close = () => {
     editor.hidden = true;
     trigger.setAttribute("aria-expanded", "false");
+    window.removeEventListener("resize", positionEditor);
+    elements.adminResults.removeEventListener("scroll", closeOnTableScroll);
+    document.removeEventListener("click", closeOnOutsideClick);
   };
+  editor.closeEditor = close;
   cancel.addEventListener("click", close);
   save.addEventListener("click", async () => {
     if (!selected.size) {
@@ -1010,11 +1040,20 @@ function createAdminProcedureEditor(booking, row) {
 
   trigger.addEventListener("click", () => {
     document.querySelectorAll(".procedure-editor:not([hidden])").forEach((openEditor) => {
-      if (openEditor !== editor) openEditor.hidden = true;
+      if (openEditor !== editor) openEditor.closeEditor?.();
     });
-    editor.hidden = !editor.hidden;
+    const opening = editor.hidden;
+    if (!opening) {
+      close();
+      return;
+    }
+    editor.hidden = false;
     trigger.setAttribute("aria-expanded", String(!editor.hidden));
-    if (!editor.hidden) search.focus();
+    positionEditor();
+    window.addEventListener("resize", positionEditor);
+    elements.adminResults.addEventListener("scroll", closeOnTableScroll);
+    document.addEventListener("click", closeOnOutsideClick);
+    search.focus({ preventScroll: true });
   });
   wrapper.append(trigger, editor);
   return wrapper;
