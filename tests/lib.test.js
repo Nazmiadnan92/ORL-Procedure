@@ -71,7 +71,7 @@ test("formats timestamps in Malaysia as dd/mm/yy hh:mm", () => {
 });
 
 test("returns a useful network error", () => {
-  assert.match(readableError(new Error("Failed to fetch")), /Sambungan terputus/);
+  assert.match(readableError(new Error("Failed to fetch")), /Connection lost/);
 });
 
 test("calculates a future Malaysia midnight interval", () => {

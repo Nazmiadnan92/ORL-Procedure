@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ms">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#176b65" />
     <meta
       name="description"
-      content="Sistem tempahan prosedur ORL untuk staf klinik dan wad."
+      content="ORL procedure booking system for clinic and ward staff."
     />
     <title>ORL Procedure</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23176b65'/%3E%3Cpath d='M36 14c-12-2-22 6-22 18 0 7 4 12 9 15 4 2 5 5 5 9M36 23c-7-1-12 3-12 10 0 5 3 8 7 10 4 2 6 4 6 9M36 33c4-2 9 1 9 5 0 4-2 6-5 7' fill='none' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
@@ -16,13 +16,13 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=1.1.3" />
+    <link rel="stylesheet" href="./assets/styles.css?v=1.2.0" />
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Terus ke kandungan</a>
+    <a class="skip-link" href="#main-content">Skip to content</a>
 
     <header class="topbar">
-      <a class="brand" href="#booking" aria-label="ORL Procedure, halaman utama">
+      <a class="brand" href="#booking" aria-label="ORL Procedure, home page">
         <span class="brand-mark" aria-hidden="true">
           <img src="./assets/hsb-orl-logo.png" alt="" />
         </span>
@@ -32,7 +32,7 @@
         </span>
       </a>
 
-      <nav class="primary-nav" aria-label="Navigasi utama">
+      <nav class="primary-nav" aria-label="Main navigation">
         <button class="nav-link active" type="button" data-view="booking">New Booking</button>
         <button class="nav-link" type="button" data-view="list">
           Booking List
@@ -43,9 +43,9 @@
       <div class="header-actions">
         <div class="connection-pill" id="connection-pill" role="status" aria-live="polite">
           <span class="connection-dot"></span>
-          <span id="connection-label">Menghubungkan</span>
+          <span id="connection-label">Connecting</span>
         </div>
-        <button class="admin-entry" type="button" data-view="admin" aria-label="Buka Admin">
+        <button class="admin-entry" type="button" data-view="admin" aria-label="Open Admin">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM4 21a8 8 0 0 1 16 0" /></svg>
           <span>Admin</span>
         </button>
@@ -56,12 +56,12 @@
       <section id="booking-view" class="view active" aria-labelledby="booking-title">
         <div class="page-intro">
           <div>
-            <p class="eyebrow">Tempahan staf</p>
+            <p class="eyebrow">Staff booking</p>
             <h1 id="booking-title">New Booking</h1>
-            <p>Lengkapkan maklumat pesakit. Status akan bermula sebagai NEW.</p>
+            <p>Complete the patient details. The booking will start with NEW status.</p>
           </div>
-          <div class="today-card" aria-label="Tarikh hari ini">
-            <span>Hari ini</span>
+          <div class="today-card" aria-label="Today's date">
+            <span>Today</span>
             <strong id="today-date">—</strong>
           </div>
         </div>
@@ -71,21 +71,21 @@
             <div class="section-heading">
               <span>01</span>
               <div>
-                <h2>Maklumat pesakit</h2>
-                <p>Ruangan bertanda * wajib diisi.</p>
+                <h2>Patient details</h2>
+                <p>Fields marked * are required.</p>
               </div>
             </div>
 
             <div class="form-grid staff-form-stack">
               <label class="field">
                 <span>Doctor *</span>
-                <input id="doctor" name="doctor" type="text" autocomplete="name" maxlength="120" placeholder="Nama doktor" required />
+                <input id="doctor" name="doctor" type="text" autocomplete="name" maxlength="120" placeholder="Doctor's name" required />
                 <small class="field-error" data-error-for="doctor"></small>
               </label>
 
               <label class="field">
                 <span>Patient Name *</span>
-                <input id="patient-name" name="patientName" type="text" autocomplete="off" maxlength="160" placeholder="Nama pesakit" required />
+                <input id="patient-name" name="patientName" type="text" autocomplete="off" maxlength="160" placeholder="Patient's name" required />
                 <small class="field-error" data-error-for="patientName"></small>
               </label>
 
@@ -93,7 +93,7 @@
                 <span>Subspecialty *</span>
                 <span class="select-wrap">
                   <select id="subspecialty" name="subspecialty" required>
-                    <option value="">Pilih subspecialty</option>
+                    <option value="">Select subspecialty</option>
                     <option>Gen ORL</option>
                     <option>Otology</option>
                     <option>Rhinology</option>
@@ -111,8 +111,8 @@
             <div class="section-heading">
               <span>02</span>
               <div>
-                <h2>Butiran prosedur</h2>
-                <p>Boleh pilih lebih daripada satu prosedur atau kawasan.</p>
+                <h2>Procedure details</h2>
+                <p>You may select more than one procedure or affected region.</p>
               </div>
             </div>
 
@@ -123,11 +123,11 @@
                   <div class="selected-chips" id="selected-procedures" aria-live="polite"></div>
                   <div class="search-wrap">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
-                    <input id="procedure-search" type="search" autocomplete="off" placeholder="Cari dan pilih prosedur" role="combobox" aria-expanded="false" aria-controls="procedure-options" aria-autocomplete="list" />
+                    <input id="procedure-search" type="search" autocomplete="off" placeholder="Search and select procedures" role="combobox" aria-expanded="false" aria-controls="procedure-options" aria-autocomplete="list" />
                   </div>
-                  <div class="option-list" id="procedure-options" role="listbox" aria-label="Senarai prosedur" hidden></div>
+                  <div class="option-list" id="procedure-options" role="listbox" aria-label="Procedure list" hidden></div>
                 </div>
-                <small class="field-help">Prosedur paling kerap digunakan dipaparkan dahulu.</small>
+                <small class="field-help">Frequently used procedures appear first.</small>
                 <small class="field-error" data-error-for="procedures"></small>
               </div>
 
@@ -159,7 +159,7 @@
 
               <label class="field">
                 <span>Notes <em>Optional</em></span>
-                <textarea id="notes" name="notes" rows="4" maxlength="4000" placeholder="Maklumat tambahan jika ada"></textarea>
+                <textarea id="notes" name="notes" rows="4" maxlength="4000" placeholder="Additional information, if any"></textarea>
                 <small class="character-count"><span id="notes-count">0</span>/4000</small>
               </label>
             </div>
@@ -168,7 +168,7 @@
           <div class="form-actions">
             <p>
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" /><path d="M12 10v6m0-9h.01" /></svg>
-              Semak maklumat sebelum dihantar. Staf tidak boleh mengubah tempahan selepas submit.
+              Review the information before submitting. Staff cannot edit a booking after submission.
             </p>
             <button id="submit-button" class="primary-button" type="submit">
               <span class="button-label">Submit Booking</span>
@@ -181,12 +181,12 @@
       <section id="list-view" class="view" aria-labelledby="list-title" hidden>
         <div class="page-intro list-intro">
           <div>
-            <p class="eyebrow">Paparan semasa</p>
-            <h1 id="list-title">Booking Hari Ini</h1>
-            <p id="list-date-description">Tempahan akan dikemas kini secara automatik.</p>
+            <p class="eyebrow">Current view</p>
+            <h1 id="list-title">Today's Bookings</h1>
+            <p id="list-date-description">Bookings update automatically.</p>
           </div>
-          <div class="summary-cards" aria-label="Ringkasan tempahan">
-            <div><span>Jumlah</span><strong id="total-count">0</strong></div>
+          <div class="summary-cards" aria-label="Booking summary">
+            <div><span>Total</span><strong id="total-count">0</strong></div>
             <div><span>Clinic</span><strong id="clinic-count">0</strong></div>
             <div><span>Ward</span><strong id="ward-count">0</strong></div>
           </div>
@@ -195,47 +195,47 @@
         <div class="list-card">
           <div class="list-toolbar">
             <label class="list-search">
-              <span class="sr-only">Cari tempahan</span>
+              <span class="sr-only">Search bookings</span>
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
-              <input id="booking-search" type="search" placeholder="Cari doktor, pesakit atau prosedur" />
+              <input id="booking-search" type="search" placeholder="Search doctor, patient or procedure" />
             </label>
-            <div class="filter-tabs" role="group" aria-label="Tapis Patient Source">
+            <div class="filter-tabs" role="group" aria-label="Filter by patient source">
               <button class="active" type="button" data-filter="All">All</button>
               <button type="button" data-filter="Clinic">Clinic</button>
               <button type="button" data-filter="Ward">Ward</button>
             </div>
-            <button class="icon-button" id="refresh-button" type="button" aria-label="Muat semula senarai" title="Muat semula">
+            <button class="icon-button" id="refresh-button" type="button" aria-label="Refresh list" title="Refresh">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg>
             </button>
           </div>
 
           <div id="list-loading" class="list-state">
             <span class="large-spinner" aria-hidden="true"></span>
-            <p>Memuatkan tempahan…</p>
+            <p>Loading bookings…</p>
           </div>
 
           <div id="list-error" class="list-state error-state" hidden>
             <div class="state-icon">!</div>
-            <h2>Senarai tidak dapat dimuatkan</h2>
-            <p>Sambungan mungkin terputus. Cuba semula sebentar lagi.</p>
-            <button class="secondary-button" type="button" id="retry-list">Cuba semula</button>
+            <h2>Unable to load bookings</h2>
+            <p>The connection may have been interrupted. Please try again shortly.</p>
+            <button class="secondary-button" type="button" id="retry-list">Try again</button>
           </div>
 
           <div id="empty-state" class="list-state empty-state" hidden>
             <div class="state-icon">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" /><path d="M9 14h6" /></svg>
             </div>
-            <h2>Belum ada booking hari ini</h2>
-            <p>Tempahan baharu akan muncul di sini secara automatik.</p>
-            <button class="secondary-button" type="button" data-view="booking">Buat booking</button>
+            <h2>No bookings yet today</h2>
+            <p>New bookings will appear here automatically.</p>
+            <button class="secondary-button" type="button" data-view="booking">Create booking</button>
           </div>
 
           <div id="no-results-state" class="list-state empty-state" hidden>
             <div class="state-icon">
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
             </div>
-            <h2>Tiada hasil carian</h2>
-            <p>Cuba kata kunci atau penapis lain.</p>
+            <h2>No search results</h2>
+            <p>Try another keyword or filter.</p>
           </div>
 
           <div id="booking-results" hidden>
@@ -270,9 +270,9 @@
             <div class="login-mark" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M8 11V8a4 4 0 0 1 8 0v3M6 11h12v10H6V11Z" /></svg>
             </div>
-            <p class="eyebrow">Akses terhad</p>
+            <p class="eyebrow">Restricted access</p>
             <h1 id="admin-title">Admin Login</h1>
-            <p class="login-copy">Log masuk untuk mengurus booking, status dan rekod sejarah.</p>
+            <p class="login-copy">Log in to manage bookings, statuses and historical records.</p>
 
             <form id="admin-login-form" class="admin-login-form" novalidate>
               <label class="field">
@@ -282,8 +282,8 @@
               <label class="field">
                 <span>Password</span>
                 <span class="password-wrap">
-                  <input id="admin-password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password Admin" required />
-                  <button id="toggle-password" type="button" aria-label="Tunjukkan password">Show</button>
+                  <input id="admin-password" name="password" type="password" autocomplete="current-password" placeholder="Enter Admin password" required />
+                  <button id="toggle-password" type="button" aria-label="Show password">Show</button>
                 </span>
                 <small class="field-error" id="admin-login-error"></small>
               </label>
@@ -293,16 +293,16 @@
               </button>
             </form>
 
-            <button class="back-to-staff" type="button" data-view="booking">Kembali ke Staff</button>
+            <button class="back-to-staff" type="button" data-view="booking">Back to Staff</button>
           </div>
         </div>
 
         <div id="admin-dashboard" hidden>
           <div class="page-intro admin-intro">
             <div>
-              <p class="eyebrow">Pengurusan booking</p>
+              <p class="eyebrow">Booking management</p>
               <h1>Admin Dashboard</h1>
-              <p>Edit Procedure, Notes dan Status terus pada senarai. Maklumat asal pesakit dikunci.</p>
+              <p>Edit Procedure, Notes and Status directly in the list. Original patient details are locked.</p>
             </div>
             <div class="admin-account">
               <div>
@@ -319,7 +319,7 @@
           </div>
 
           <div id="admin-bookings-panel" role="tabpanel" aria-labelledby="admin-bookings-tab">
-            <div class="admin-summary" aria-label="Ringkasan semua rekod">
+            <div class="admin-summary" aria-label="Summary of all records">
             <div><span>Total Records</span><strong id="admin-total-count">0</strong></div>
             <div><span>NEW</span><strong id="admin-new-count">0</strong></div>
             <div><span>READY</span><strong id="admin-ready-count">0</strong></div>
@@ -330,12 +330,12 @@
             <div class="list-card admin-list-card">
             <div class="list-toolbar admin-toolbar">
               <label class="list-search">
-                <span class="sr-only">Cari semua rekod</span>
+                <span class="sr-only">Search all records</span>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
-                <input id="admin-search" type="search" placeholder="Cari doktor, pesakit atau prosedur" />
+                <input id="admin-search" type="search" placeholder="Search doctor, patient or procedure" />
               </label>
               <label class="compact-select">
-                <span class="sr-only">Tapis source</span>
+                <span class="sr-only">Filter by source</span>
                 <select id="admin-source-filter">
                   <option value="All">All Sources</option>
                   <option value="Clinic">Clinic</option>
@@ -343,7 +343,7 @@
                 </select>
               </label>
               <label class="compact-select">
-                <span class="sr-only">Tapis status</span>
+                <span class="sr-only">Filter by status</span>
                 <select id="admin-status-filter">
                   <option value="All">All Statuses</option>
                   <option value="NEW">NEW</option>
@@ -352,37 +352,37 @@
                   <option value="CANCEL">CANCEL</option>
                 </select>
               </label>
-              <button class="icon-button" id="admin-refresh" type="button" aria-label="Muat semula rekod Admin" title="Muat semula">
+              <button class="icon-button" id="admin-refresh" type="button" aria-label="Refresh Admin records" title="Refresh">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg>
               </button>
             </div>
 
             <div id="admin-loading" class="list-state">
               <span class="large-spinner" aria-hidden="true"></span>
-              <p>Memuatkan rekod Admin…</p>
+              <p>Loading Admin records…</p>
             </div>
 
             <div id="admin-error" class="list-state error-state" hidden>
               <div class="state-icon">!</div>
-              <h2>Rekod tidak dapat dimuatkan</h2>
-              <p>Sila muat semula atau log masuk sekali lagi.</p>
-              <button class="secondary-button" type="button" id="admin-retry">Cuba semula</button>
+              <h2>Unable to load records</h2>
+              <p>Please refresh or log in again.</p>
+              <button class="secondary-button" type="button" id="admin-retry">Try again</button>
             </div>
 
             <div id="admin-empty" class="list-state empty-state" hidden>
               <div class="state-icon">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" /><path d="M9 14h6" /></svg>
               </div>
-              <h2>Belum ada rekod</h2>
-              <p>Rekod Staff akan muncul di sini selepas booking dihantar.</p>
+              <h2>No records yet</h2>
+              <p>Staff records will appear here after a booking is submitted.</p>
             </div>
 
             <div id="admin-no-results" class="list-state empty-state" hidden>
               <div class="state-icon">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" /></svg>
               </div>
-              <h2>Tiada rekod sepadan</h2>
-              <p>Cuba carian atau penapis lain.</p>
+              <h2>No matching records</h2>
+              <p>Try another search or filter.</p>
             </div>
 
             <div id="admin-results" class="admin-table-scroll" hidden>
@@ -414,51 +414,51 @@
           <div id="admin-stats-panel" role="tabpanel" aria-labelledby="admin-stats-tab" hidden>
             <div class="stats-period-card">
               <div>
-                <p class="eyebrow">Ringkasan mengikut bulan</p>
-                <h2>Statistik Bulanan</h2>
+                <p class="eyebrow">Monthly summary</p>
+                <h2>Monthly Statistics</h2>
                 <p id="stats-period-label">—</p>
               </div>
               <div class="stats-period-controls">
                 <label>
-                  <span>Bulan</span>
+                  <span>Month</span>
                   <span class="compact-select">
-                    <select id="stats-month" aria-label="Bulan">
-                      <option value="1">Januari</option>
-                      <option value="2">Februari</option>
-                      <option value="3">Mac</option>
+                    <select id="stats-month" aria-label="Month">
+                      <option value="1">January</option>
+                      <option value="2">February</option>
+                      <option value="3">March</option>
                       <option value="4">April</option>
-                      <option value="5">Mei</option>
-                      <option value="6">Jun</option>
-                      <option value="7">Julai</option>
-                      <option value="8">Ogos</option>
+                      <option value="5">May</option>
+                      <option value="6">June</option>
+                      <option value="7">July</option>
+                      <option value="8">August</option>
                       <option value="9">September</option>
-                      <option value="10">Oktober</option>
+                      <option value="10">October</option>
                       <option value="11">November</option>
-                      <option value="12">Disember</option>
+                      <option value="12">December</option>
                     </select>
                   </span>
                 </label>
                 <label>
-                  <span>Tahun</span>
+                  <span>Year</span>
                   <span class="compact-select">
-                    <select id="stats-year" aria-label="Tahun"></select>
+                    <select id="stats-year" aria-label="Year"></select>
                   </span>
                 </label>
               </div>
             </div>
 
-            <div class="monthly-summary" aria-label="Ringkasan kes bulanan">
-              <div class="monthly-total"><span>Total Cases</span><strong id="stats-total">0</strong><small>Satu booking dikira satu kes</small></div>
-              <div class="monthly-clinic"><span>Clinic · Outpatient</span><strong id="stats-clinic">0</strong><small id="stats-clinic-percent">0% daripada kes</small></div>
-              <div class="monthly-ward"><span>Ward · Inpatient</span><strong id="stats-ward">0</strong><small id="stats-ward-percent">0% daripada kes</small></div>
+            <div class="monthly-summary" aria-label="Monthly case summary">
+              <div class="monthly-total"><span>Total Cases</span><strong id="stats-total">0</strong><small>One booking counts as one case</small></div>
+              <div class="monthly-clinic"><span>Clinic · Outpatient</span><strong id="stats-clinic">0</strong><small id="stats-clinic-percent">0% of cases</small></div>
+              <div class="monthly-ward"><span>Ward · Inpatient</span><strong id="stats-ward">0</strong><small id="stats-ward-percent">0% of cases</small></div>
             </div>
 
             <div id="stats-empty" class="stats-empty" hidden>
               <div class="state-icon">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9m6 10V4m6 15v-7m4 7H2" /></svg>
               </div>
-              <h3>Tiada kes untuk bulan ini</h3>
-              <p>Pilih bulan atau tahun lain untuk melihat statistik.</p>
+              <h3>No cases for this month</h3>
+              <p>Select another month or year to view statistics.</p>
             </div>
 
             <div id="stats-content" class="statistics-grid">
@@ -468,7 +468,7 @@
                     <p class="eyebrow">Case mix</p>
                     <h3 id="subspecialty-stat-title">Cases by Subspecialty</h3>
                   </div>
-                  <div class="stat-legend" aria-label="Petunjuk warna"><span class="clinic-key">Clinic</span><span class="ward-key">Ward</span></div>
+                  <div class="stat-legend" aria-label="Colour key"><span class="clinic-key">Clinic</span><span class="ward-key">Ward</span></div>
                 </div>
                 <div class="stat-table-wrap">
                   <table class="stat-table">
@@ -484,7 +484,7 @@
                     <p class="eyebrow">Procedure volume</p>
                     <h3 id="procedure-stat-title">Cases by Procedure</h3>
                   </div>
-                  <span class="stat-note">Satu prosedur dikira sekali bagi setiap booking</span>
+                  <span class="stat-note">Each procedure is counted once per booking</span>
                 </div>
                 <div id="procedure-stats-list" class="procedure-stats-list"></div>
               </section>
@@ -500,7 +500,7 @@
           <svg viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg>
         </div>
         <h2>Delete booking?</h2>
-        <p id="delete-dialog-copy">Rekod ini akan disembunyikan daripada senarai dan statistik.</p>
+        <p id="delete-dialog-copy">This record will be hidden from the list and statistics.</p>
         <div class="dialog-actions">
           <button class="secondary-button" value="cancel">Cancel</button>
           <button id="confirm-delete" class="danger-button" value="default">Delete</button>
@@ -511,9 +511,9 @@
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
     <noscript>
-      <div class="noscript-message">Sila aktifkan JavaScript untuk menggunakan sistem booking ini.</div>
+      <div class="noscript-message">Please enable JavaScript to use this booking system.</div>
     </noscript>
 
-    <script type="module" src="./assets/app.js?v=1.1.3"></script>
+    <script type="module" src="./assets/app.js?v=1.2.0"></script>
   </body>
 </html>

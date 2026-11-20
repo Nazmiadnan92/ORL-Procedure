@@ -75,22 +75,22 @@ export function filterAdminBookings(bookings, query, source, status) {
 export function readableError(error) {
   const message = String(error?.message ?? error ?? "");
   if (/failed to fetch|network|load failed/i.test(message)) {
-    return "Sambungan terputus. Semak internet dan cuba lagi.";
+    return "Connection lost. Check your internet connection and try again.";
   }
   if (/Complete all required|22023/i.test(message)) {
-    return "Lengkapkan semua ruangan wajib sebelum submit.";
+    return "Complete all required fields before submitting.";
   }
   if (/active procedures/i.test(message)) {
-    return "Senarai prosedur telah berubah. Muat semula dan pilih sekali lagi.";
+    return "The procedure list has changed. Refresh and select again.";
   }
   if (/Request ID already used|23505/i.test(message)) {
-    return "Tempahan ini sudah dihantar. Sila semak Booking List.";
+    return "This booking has already been submitted. Please check the Booking List.";
   }
-  return "Booking tidak dapat dihantar. Cuba sekali lagi.";
+  return "Unable to submit the booking. Please try again.";
 }
 
 export function malaysiaDateLabel(value = new Date()) {
-  return new Intl.DateTimeFormat("ms-MY", {
+  return new Intl.DateTimeFormat("en-MY", {
     timeZone: "Asia/Kuala_Lumpur",
     weekday: "long",
     day: "numeric",

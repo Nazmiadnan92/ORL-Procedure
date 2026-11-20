@@ -162,7 +162,7 @@ function setConnection(status) {
   elements.connectionPill.classList.toggle("online", status === "online");
   elements.connectionPill.classList.toggle("offline", status === "offline");
   elements.connectionLabel.textContent =
-    status === "online" ? "Live" : status === "offline" ? "Offline" : "Menghubungkan";
+    status === "online" ? "Live" : status === "offline" ? "Offline" : "Connecting";
 }
 
 async function loadProcedureCatalog() {
@@ -180,7 +180,7 @@ function renderProcedureOptions() {
   if (!matches.length) {
     const empty = document.createElement("div");
     empty.className = "option-empty";
-    empty.textContent = "Prosedur tidak dijumpai";
+    empty.textContent = "No procedures found";
     elements.procedureOptions.append(empty);
     return;
   }
@@ -216,7 +216,7 @@ function renderSelectedProcedures() {
       text.textContent = procedure.name;
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.setAttribute("aria-label", `Buang ${procedure.name}`);
+      remove.setAttribute("aria-label", `Remove ${procedure.name}`);
       remove.textContent = "×";
       remove.addEventListener("click", () => toggleProcedure(procedure.id));
       chip.append(text, remove);
@@ -271,10 +271,10 @@ function validateForm(formData) {
 
   const errors = [];
   const required = [
-    ["doctor", formData.doctor, "Masukkan nama doktor."],
-    ["patientName", formData.patientName, "Masukkan nama pesakit."],
-    ["subspecialty", formData.subspecialty, "Pilih subspecialty."],
-    ["patientSource", formData.patientSource, "Pilih Clinic atau Ward."],
+    ["doctor", formData.doctor, "Enter the doctor's name."],
+    ["patientName", formData.patientName, "Enter the patient's name."],
+    ["subspecialty", formData.subspecialty, "Select a subspecialty."],
+    ["patientSource", formData.patientSource, "Select Clinic or Ward."],
   ];
   required.forEach(([name, value, message]) => {
     if (!value) {
@@ -283,11 +283,11 @@ function validateForm(formData) {
     }
   });
   if (!formData.procedureIds.length) {
-    setFieldError("procedures", "Pilih sekurang-kurangnya satu prosedur.");
+    setFieldError("procedures", "Select at least one procedure.");
     errors.push("procedures");
   }
   if (!formData.affectedRegions.length) {
-    setFieldError("affectedRegions", "Pilih sekurang-kurangnya satu kawasan.");
+    setFieldError("affectedRegions", "Select at least one affected region.");
     errors.push("affectedRegions");
   }
   return errors;
@@ -330,7 +330,7 @@ async function submitBooking(event) {
 
   if (error) {
     setSubmitting(false);
-    showToast("Booking belum dihantar", readableError(error), "error");
+    showToast("Booking not submitted", readableError(error), "error");
     return;
   }
 
@@ -341,7 +341,7 @@ async function submitBooking(event) {
   renderProcedureOptions();
   elements.notesCount.textContent = "0";
   setSubmitting(false);
-  showToast("Booking berjaya dihantar", "Tempahan baharu telah direkodkan dengan status NEW.");
+  showToast("Booking submitted", "The new booking has been recorded with NEW status.");
   await Promise.all([fetchBookings({ silent: true }), loadProcedureCatalog()]);
   setView("list");
 }
@@ -577,7 +577,7 @@ async function handleAdminLogin(event) {
   event.preventDefault();
   elements.adminLoginError.textContent = "";
   if (!elements.adminPassword.value) {
-    elements.adminLoginError.textContent = "Masukkan password Admin.";
+    elements.adminLoginError.textContent = "Enter the Admin password.";
     elements.adminPassword.focus();
     return;
   }
@@ -589,14 +589,14 @@ async function handleAdminLogin(event) {
   });
 
   if (error || !(await verifyAdminSession(data.session))) {
-    elements.adminLoginError.textContent = "Email atau password tidak sah.";
+    elements.adminLoginError.textContent = "Invalid email or password.";
     setAdminLoginLoading(false);
     return;
   }
 
   elements.adminPassword.value = "";
   setAdminLoginLoading(false);
-  showToast("Admin berjaya log masuk", "Rekod sejarah kini boleh diuruskan.");
+  showToast("Admin logged in", "Historical records can now be managed.");
   await Promise.all([fetchAdminBookings(), populateStatsYears()]);
 }
 
@@ -611,7 +611,7 @@ async function handleAdminLogout() {
   state.statsLoadedKey = "";
   elements.adminLogout.disabled = false;
   showAdminLogin();
-  showToast("Admin telah log keluar", "Akses pengurusan ditutup pada peranti ini.");
+  showToast("Admin logged out", "Management access has been closed on this device.");
 }
 
 async function loadAdminProcedureCatalog() {
@@ -671,7 +671,7 @@ async function fetchAdminBookings({ silent = false, resetPage = false } = {}) {
   } catch (error) {
     if (requestId !== state.adminRequestId) return;
     if (!state.adminLoaded) showAdminState("error");
-    showToast("Rekod Admin tidak dapat dimuatkan", readableError(error), "error");
+    showToast("Unable to load Admin records", readableError(error), "error");
   } finally {
     if (requestId === state.adminRequestId) elements.adminRefresh.classList.remove("loading");
   }
@@ -727,14 +727,14 @@ async function fetchMonthlyStatistics({ silent = false } = {}) {
   if (!state.adminVerified) return;
   const key = `${state.statsYear}-${state.statsMonth}`;
   const requestId = ++state.statsRequestId;
-  if (!silent) elements.statsPeriodLabel.textContent = "Memuatkan…";
+  if (!silent) elements.statsPeriodLabel.textContent = "Loading…";
   const { data, error } = await supabase.rpc("admin_monthly_statistics", {
     p_year: state.statsYear,
     p_month: state.statsMonth,
   });
   if (requestId !== state.statsRequestId || key !== `${state.statsYear}-${state.statsMonth}`) return;
   if (error) {
-    showToast("Statistik tidak dapat dimuatkan", readableError(error), "error");
+    showToast("Unable to load statistics", readableError(error), "error");
     return;
   }
   state.statsData = data;
@@ -755,8 +755,8 @@ function renderMonthlyStatistics() {
   elements.statsTotal.textContent = String(statistics.total);
   elements.statsClinic.textContent = String(statistics.clinic);
   elements.statsWard.textContent = String(statistics.ward);
-  elements.statsClinicPercent.textContent = `${percentage(statistics.clinic, statistics.total)}% daripada kes`;
-  elements.statsWardPercent.textContent = `${percentage(statistics.ward, statistics.total)}% daripada kes`;
+  elements.statsClinicPercent.textContent = `${percentage(statistics.clinic, statistics.total)}% of cases`;
+  elements.statsWardPercent.textContent = `${percentage(statistics.ward, statistics.total)}% of cases`;
   elements.statsEmpty.hidden = statistics.total !== 0;
   elements.statsContent.hidden = statistics.total === 0;
 
@@ -1029,7 +1029,7 @@ function createAdminProcedureEditor(booking, row) {
   cancel.addEventListener("click", close);
   save.addEventListener("click", async () => {
     if (!selected.size) {
-      showToast("Procedure diperlukan", "Pilih sekurang-kurangnya satu prosedur.", "error");
+      showToast("Procedure required", "Select at least one procedure.", "error");
       return;
     }
     const saved = await updateAdminBooking(booking.id, { procedureIds: [...selected] }, row);
@@ -1077,9 +1077,9 @@ async function updateAdminBooking(bookingId, patch, row) {
   if (error) {
     row.classList.add("save-error");
     showToast(
-      "Perubahan tidak disimpan",
+      "Changes not saved",
       /changed|40001/i.test(String(error.message))
-        ? "Rekod telah berubah pada peranti lain. Senarai akan dimuat semula."
+        ? "The record was changed on another device. The list will be refreshed."
         : readableError(error),
       "error",
     );
@@ -1092,7 +1092,7 @@ async function updateAdminBooking(bookingId, patch, row) {
     fetchAdminBookings({ silent: true }),
     fetchMonthlyStatistics({ silent: true }),
   ]);
-  showToast("Perubahan disimpan", "Booking telah dikemas kini.");
+  showToast("Changes saved", "The booking has been updated.");
   return true;
 }
 
@@ -1100,7 +1100,7 @@ function openDeleteDialog(bookingId) {
   const booking = state.adminBookings.find((item) => item.id === bookingId);
   if (!booking) return;
   state.pendingDeleteId = bookingId;
-  elements.deleteDialogCopy.textContent = `${booking.patient_name} akan disembunyikan daripada senarai dan statistik. Rekod masih boleh dipulihkan melalui database.`;
+  elements.deleteDialogCopy.textContent = `${booking.patient_name} will be hidden from the list and statistics. The record can still be restored from the database.`;
   elements.deleteDialog.showModal();
 }
 
@@ -1114,7 +1114,7 @@ async function deleteAdminBooking() {
   });
   elements.confirmDelete.disabled = false;
   if (error) {
-    showToast("Booking tidak dapat dipadam", readableError(error), "error");
+    showToast("Unable to delete booking", readableError(error), "error");
     elements.deleteDialog.close();
     await fetchAdminBookings({ silent: true });
     return;
@@ -1125,7 +1125,7 @@ async function deleteAdminBooking() {
     fetchAdminBookings({ silent: true }),
     fetchMonthlyStatistics({ silent: true }),
   ]);
-  showToast("Booking dipadam", "Rekod disembunyikan dan masih boleh dipulihkan.");
+  showToast("Booking deleted", "The record is hidden and can still be restored.");
 }
 
 function scheduleAdminRefresh() {
@@ -1178,7 +1178,7 @@ function scheduleMidnightReset() {
 function updateDateLabels() {
   const label = malaysiaDateLabel();
   elements.todayDate.textContent = label;
-  elements.listDateDescription.textContent = `${label} · dikemas kini secara automatik`;
+  elements.listDateDescription.textContent = `${label} · updates automatically`;
 }
 
 function showToast(title, message, type = "success") {
@@ -1247,7 +1247,7 @@ function bindEvents() {
     const showing = elements.adminPassword.type === "text";
     elements.adminPassword.type = showing ? "password" : "text";
     elements.togglePassword.textContent = showing ? "Show" : "Hide";
-    elements.togglePassword.setAttribute("aria-label", showing ? "Tunjukkan password" : "Sembunyikan password");
+    elements.togglePassword.setAttribute("aria-label", showing ? "Show password" : "Hide password");
   });
   elements.adminLogout.addEventListener("click", handleAdminLogout);
   elements.adminBookingsTab.addEventListener("click", () => setAdminSection("bookings"));
@@ -1345,7 +1345,7 @@ async function initialise() {
     }
   } catch (error) {
     setConnection("offline");
-    showToast("Sistem tidak dapat dimuatkan", readableError(error), "error");
+    showToast("Unable to load the system", readableError(error), "error");
   }
 }
 
