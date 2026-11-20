@@ -897,22 +897,23 @@ function createAdminRow(booking) {
   const statusCell = document.createElement("td");
   statusCell.className = "admin-actions-cell";
   statusCell.dataset.label = "Status / Delete";
-  const statusSelect = document.createElement("select");
-  statusSelect.className = "admin-status-select";
-  statusSelect.setAttribute("aria-label", `Status for ${booking.patient_name}`);
+  const statusGrid = document.createElement("div");
+  statusGrid.className = "admin-status-grid";
+  statusGrid.setAttribute("role", "group");
+  statusGrid.setAttribute("aria-label", `Status for ${booking.patient_name}`);
   ["NEW", "READY", "DONE", "CANCEL"].forEach((status) => {
-    const option = document.createElement("option");
-    option.value = status;
-    option.textContent = status;
-    option.selected = status === booking.status;
-    statusSelect.append(option);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `admin-status-button admin-status-${status.toLowerCase()}`;
+    button.textContent = status;
+    button.setAttribute("aria-pressed", String(status === booking.status));
+    button.addEventListener("click", async () => {
+      if (status === booking.status) return;
+      await updateAdminBooking(booking.id, { status }, row);
+    });
+    statusGrid.append(button);
   });
-  statusSelect.addEventListener("change", async () => {
-    const previous = booking.status;
-    const saved = await updateAdminBooking(booking.id, { status: statusSelect.value }, row);
-    if (!saved) statusSelect.value = previous;
-  });
-  statusCell.append(statusSelect);
+  statusCell.append(statusGrid);
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";

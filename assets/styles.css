@@ -1678,8 +1678,7 @@ tr.row-ward-bed td.procedure-cell,
   transform: translateY(-70%) rotate(45deg);
 }
 
-.compact-select select,
-.admin-status-select {
+.compact-select select {
   min-height: 46px;
   padding: 9px 38px 9px 12px;
   border: 1px solid var(--line);
@@ -1886,22 +1885,67 @@ tr.row-ward-bed td.procedure-cell,
   outline: none;
 }
 
-.admin-status-select {
-  width: calc(100% - 48px);
-  min-width: 0;
-  min-height: 40px;
-  padding: 7px 30px 7px 10px;
-  border-color: #cfd9d6;
+.admin-actions-cell {
+  white-space: normal;
 }
 
-.admin-actions-cell {
-  white-space: nowrap;
+.admin-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  width: 100%;
+}
+
+.admin-status-button {
+  min-width: 0;
+  min-height: 31px;
+  padding: 5px 3px;
+  border: 1px solid #d4dddb;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 76%);
+  color: #657376;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.admin-status-button:hover:not(:disabled) {
+  border-color: #9cb3ae;
+  background: white;
+}
+
+.admin-status-button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.admin-status-new[aria-pressed="true"] {
+  border-color: #aeb9b8;
+  background: #edf0f0;
+  color: #4f5d60;
+}
+
+.admin-status-ready[aria-pressed="true"] {
+  border-color: #8fc9a4;
+  background: #e5f5ea;
+  color: var(--green);
+}
+
+.admin-status-done[aria-pressed="true"] {
+  border-color: #b9a0d5;
+  background: #f0e8f8;
+  color: var(--purple);
+}
+
+.admin-status-cancel[aria-pressed="true"] {
+  border-color: #e5a3aa;
+  background: #fbe6e8;
+  color: var(--red);
 }
 
 .admin-actions-cell .delete-row-button {
-  display: inline-grid;
-  margin-left: 6px;
-  vertical-align: middle;
+  display: grid;
+  margin: 7px auto 0;
 }
 
 .admin-pagination {
@@ -2227,8 +2271,8 @@ tr.row-ward-bed td.procedure-cell,
     text-transform: uppercase;
   }
 
-  .admin-status-select {
-    width: min(180px, calc(100% - 48px));
+  .admin-status-grid {
+    width: min(210px, 100%);
   }
 
   .admin-pagination {
