@@ -996,6 +996,12 @@ td {
   line-height: 1.42;
 }
 
+.person-cell {
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
@@ -1768,6 +1774,12 @@ tr.row-ward-bed td.procedure-cell,
   font-size: 0.7rem;
 }
 
+.admin-cell-secondary-emphasis {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .editable-procedure {
   width: 100%;
   min-width: 0;
@@ -2407,6 +2419,20 @@ tr.row-ward-bed td.procedure-cell,
     margin: 0;
     color: var(--muted);
     font-size: 0.76rem;
+  }
+
+  .card-head .card-doctor-name {
+    margin-top: 3px;
+    color: var(--ink);
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .card-head .card-timestamp {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 0.72rem;
   }
 
   .card-body {

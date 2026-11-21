@@ -466,8 +466,8 @@ function createTableRow(booking) {
   statusCell.append(statusBadge(booking.status));
   row.append(
     textCell(formatDateTime(booking.booked_at)),
-    textCell(booking.doctor),
-    textCell(booking.patient_name),
+    textCell(booking.doctor, "person-cell doctor-cell"),
+    textCell(booking.patient_name, "person-cell patient-cell"),
     textCell(booking.subspecialty),
     procedureCell,
     regionCell,
@@ -497,9 +497,13 @@ function createBookingCard(booking) {
   const identity = document.createElement("div");
   const name = document.createElement("h3");
   name.textContent = booking.patient_name;
+  const doctor = document.createElement("p");
+  doctor.className = "card-doctor-name";
+  doctor.textContent = booking.doctor;
   const meta = document.createElement("p");
-  meta.textContent = `${formatDateTime(booking.booked_at)} · Dr ${booking.doctor}`;
-  identity.append(name, meta);
+  meta.className = "card-timestamp";
+  meta.textContent = formatDateTime(booking.booked_at);
+  identity.append(name, doctor, meta);
   head.append(identity, statusBadge(booking.status));
 
   const body = document.createElement("div");
@@ -841,7 +845,7 @@ function createLockedCell(value) {
   return cell;
 }
 
-function createStackedCell(primaryValue, secondaryValue, primaryLabel, secondaryLabel) {
+function createStackedCell(primaryValue, secondaryValue, primaryLabel, secondaryLabel, emphasizeSecondary = false) {
   const cell = document.createElement("td");
   cell.className = "locked-cell admin-stacked-cell";
   cell.dataset.label = primaryLabel;
@@ -850,6 +854,7 @@ function createStackedCell(primaryValue, secondaryValue, primaryLabel, secondary
   primary.textContent = primaryValue;
   const secondary = document.createElement("span");
   secondary.className = "admin-cell-secondary";
+  if (emphasizeSecondary) secondary.classList.add("admin-cell-secondary-emphasis");
   secondary.textContent = `${secondaryLabel}: ${secondaryValue}`;
   cell.append(primary, secondary);
   return cell;
@@ -928,7 +933,7 @@ function createAdminRow(booking) {
 
   row.append(
     timestampCell,
-    createStackedCell(booking.patient_name, booking.doctor, "Patient / Doctor", "Doctor"),
+    createStackedCell(booking.patient_name, booking.doctor, "Patient / Doctor", "Doctor", true),
     createStackedCell(booking.subspecialty, booking.patient_source, "Subspecialty / Source", "Source"),
     procedureCell,
     regionCell,
