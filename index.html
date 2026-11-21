@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=1.4.2" />
+    <link rel="stylesheet" href="./assets/styles.css?v=1.5.0" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
@@ -208,6 +208,30 @@
               <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg>
             </button>
           </div>
+
+          <section class="ready-panel" aria-labelledby="ready-panel-title">
+            <header class="ready-panel-header">
+              <div>
+                <p class="eyebrow">Current queue</p>
+                <h2 id="ready-panel-title">READY PATIENTS</h2>
+              </div>
+              <span class="ready-count" id="ready-count" aria-label="Ready patient count">0</span>
+            </header>
+            <p class="ready-empty" id="ready-empty">No patients ready</p>
+            <div class="ready-table-scroll" id="ready-table" hidden>
+              <table class="ready-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Doctor</th>
+                    <th>Patient</th>
+                    <th>Procedure</th>
+                  </tr>
+                </thead>
+                <tbody id="ready-table-body"></tbody>
+              </table>
+            </div>
+          </section>
 
           <div id="list-loading" class="list-state">
             <span class="large-spinner" aria-hidden="true"></span>
@@ -513,6 +537,6 @@
       <div class="noscript-message">Please enable JavaScript to use this booking system.</div>
     </noscript>
 
-    <script type="module" src="./assets/app.js?v=1.4.2"></script>
+    <script type="module" src="./assets/app.js?v=1.5.0"></script>
   </body>
 </html>

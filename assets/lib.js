@@ -16,6 +16,13 @@ const malaysiaTime = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
+const malaysiaHourMinute = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kuala_Lumpur",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 export const SUBSPECIALTY_ORDER = ["Gen ORL", "Otology", "Rhinology", "Head & Neck", "Paeds ORL"];
 
 export function formatDateTime(value) {
@@ -24,6 +31,20 @@ export function formatDateTime(value) {
 
 export function formatTime(value) {
   return malaysiaTime.format(new Date(value));
+}
+
+export function formatHourMinute(value) {
+  return malaysiaHourMinute.format(new Date(value));
+}
+
+export function readyQueue(bookings) {
+  return bookings
+    .filter((booking) => booking.status === "READY")
+    .sort((a, b) => {
+      const first = new Date(a.ready_at ?? a.updated_at ?? a.booked_at).getTime();
+      const second = new Date(b.ready_at ?? b.updated_at ?? b.booked_at).getTime();
+      return first - second;
+    });
 }
 
 export function bookingRowClass(booking) {

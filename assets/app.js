@@ -3,14 +3,16 @@ import {
   bookingRowClass,
   filterBookings,
   formatDateTime,
+  formatHourMinute,
   formatTime,
   malaysiaDateLabel,
   malaysiaMonthYear,
   malaysiaTodayBounds,
   millisecondsUntilMalaysiaMidnight,
   normalizeBooking,
+  readyQueue,
   readableError,
-} from "./lib.js?v=1.2.1";
+} from "./lib.js?v=1.3.0";
 
 const SUPABASE_URL = "https://wpssewipanzmsygmhior.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_b8ZgFXg5fheb5WV-nIe5MQ_ZKRpquAt";
@@ -76,6 +78,10 @@ const elements = {
   tableBody: document.querySelector("#booking-table-body"),
   bookingCards: document.querySelector("#booking-cards"),
   bookingSearch: document.querySelector("#booking-search"),
+  readyCount: document.querySelector("#ready-count"),
+  readyEmpty: document.querySelector("#ready-empty"),
+  readyTable: document.querySelector("#ready-table"),
+  readyTableBody: document.querySelector("#ready-table-body"),
   filterButtons: document.querySelectorAll("[data-filter]"),
   refreshButton: document.querySelector("#refresh-button"),
   retryList: document.querySelector("#retry-list"),
@@ -366,6 +372,7 @@ async function fetchBookings({ silent = false } = {}) {
     "patient_source",
     "notes",
     "status",
+    "ready_at",
     "updated_at",
     "revision",
     "booking_procedures(procedure_id,procedures(name,uses_bed))",
@@ -389,6 +396,7 @@ async function fetchBookings({ silent = false } = {}) {
   state.bookings = (data ?? []).map(normalizeBooking);
   state.listLoaded = true;
   updateSummary();
+  renderReadyPatients();
   renderBookings();
   elements.lastUpdated.textContent = formatTime(new Date());
 }
@@ -402,6 +410,26 @@ function updateSummary() {
   elements.wardCount.textContent = String(ward);
   elements.navCount.textContent = String(total);
   elements.navCount.hidden = total === 0;
+}
+
+function renderReadyPatients() {
+  const readyBookings = readyQueue(state.bookings);
+  elements.readyCount.textContent = String(readyBookings.length);
+  elements.readyEmpty.hidden = readyBookings.length !== 0;
+  elements.readyTable.hidden = readyBookings.length === 0;
+  elements.readyTableBody.replaceChildren(...readyBookings.map(createReadyRow));
+}
+
+function createReadyRow(booking) {
+  const row = document.createElement("tr");
+  const procedureNames = booking.procedures.map((procedure) => procedure.name).join(", ");
+  row.append(
+    textCell(formatHourMinute(booking.ready_at ?? booking.updated_at ?? booking.booked_at)),
+    textCell(booking.doctor),
+    textCell(booking.patient_name),
+    textCell(procedureNames),
+  );
+  return row;
 }
 
 function showListState(kind) {
