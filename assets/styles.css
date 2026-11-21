@@ -959,7 +959,7 @@ h1 {
 
 table {
   width: 100%;
-  min-width: 1220px;
+  min-width: 1120px;
   border-collapse: collapse;
   font-size: 0.82rem;
 }
@@ -996,10 +996,43 @@ td {
   line-height: 1.42;
 }
 
-.person-cell {
-  color: var(--ink);
-  font-size: 0.88rem;
+.person-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.person-box {
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid #d8e1df;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.person-box-doctor {
+  border-color: #c9ddd7;
+  background: rgb(236 247 243 / 88%);
+}
+
+.person-box span,
+.person-box strong {
+  display: block;
+}
+
+.person-box span {
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 0.62rem;
   font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.person-box strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 tbody tr:last-child td {
@@ -1774,12 +1807,6 @@ tr.row-ward-bed td.procedure-cell,
   font-size: 0.7rem;
 }
 
-.admin-cell-secondary-emphasis {
-  color: var(--ink);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
 .editable-procedure {
   width: 100%;
   min-width: 0;
@@ -2410,9 +2437,9 @@ tr.row-ward-bed td.procedure-cell,
     border-bottom: 1px solid rgb(220 228 226 / 72%);
   }
 
-  .card-head h3 {
-    margin: 0 0 2px;
-    font-size: 0.98rem;
+  .card-identity {
+    flex: 1;
+    min-width: 0;
   }
 
   .card-head p {
@@ -2421,12 +2448,12 @@ tr.row-ward-bed td.procedure-cell,
     font-size: 0.76rem;
   }
 
-  .card-head .card-doctor-name {
-    margin-top: 3px;
-    color: var(--ink);
+  .card-head .person-box {
+    padding: 9px 10px;
+  }
+
+  .card-head .person-box strong {
     font-size: 0.98rem;
-    font-weight: 700;
-    line-height: 1.25;
   }
 
   .card-head .card-timestamp {
