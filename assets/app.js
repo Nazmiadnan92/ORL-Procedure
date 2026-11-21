@@ -919,7 +919,7 @@ function createAdminRow(booking) {
   deleteButton.type = "button";
   deleteButton.className = "delete-row-button";
   deleteButton.setAttribute("aria-label", `Delete booking for ${booking.patient_name}`);
-  deleteButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg>';
+  deleteButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg><span>DELETE</span>';
   deleteButton.addEventListener("click", () => openDeleteDialog(booking.id));
   statusCell.append(deleteButton);
 
@@ -1101,7 +1101,7 @@ function openDeleteDialog(bookingId) {
   const booking = state.adminBookings.find((item) => item.id === bookingId);
   if (!booking) return;
   state.pendingDeleteId = bookingId;
-  elements.deleteDialogCopy.textContent = `${booking.patient_name} will be hidden from the list and statistics. The record can still be restored from the database.`;
+  elements.deleteDialogCopy.textContent = `Are you sure you want to delete the booking for ${booking.patient_name}? It will be removed from the list and statistics.`;
   elements.deleteDialog.showModal();
 }
 
