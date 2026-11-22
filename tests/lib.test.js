@@ -37,10 +37,11 @@ test("normalizes nested procedure records alphabetically", () => {
 });
 
 test("filters Admin history by source and status", () => {
-  const first = normalizeBooking(base);
+  const first = normalizeBooking({ ...base, remark: "Bring patient early" });
   const second = normalizeBooking({ ...base, id: "booking-2", patient_source: "Ward", status: "DONE" });
   assert.deepEqual(filterAdminBookings([first, second], "", "Ward", "DONE").map((item) => item.id), ["booking-2"]);
   assert.equal(filterAdminBookings([first, second], "Azlina", "All", "NEW").length, 1);
+  assert.equal(filterAdminBookings([first, second], "patient early", "All", "NEW").length, 1);
 });
 
 test("applies the agreed clinic and ward bed colours", () => {

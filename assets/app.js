@@ -934,7 +934,7 @@ function createAdminRow(booking) {
   notesInput.className = "admin-notes-input";
   notesInput.value = booking.notes;
   notesInput.maxLength = 4000;
-  notesInput.rows = 2;
+  notesInput.rows = 1;
   notesInput.setAttribute("aria-label", `Edit notes for ${booking.patient_name}`);
   notesInput.dataset.original = booking.notes;
   notesInput.addEventListener("blur", async () => {
@@ -944,6 +944,24 @@ function createAdminRow(booking) {
     else notesInput.value = notesInput.dataset.original;
   });
   notesCell.append(notesInput);
+
+  const remarkCell = document.createElement("td");
+  remarkCell.dataset.label = "Remark";
+  const remarkInput = document.createElement("textarea");
+  remarkInput.className = "admin-notes-input admin-remark-input";
+  remarkInput.value = booking.remark ?? "";
+  remarkInput.maxLength = 4000;
+  remarkInput.rows = 1;
+  remarkInput.placeholder = "Admin remark";
+  remarkInput.setAttribute("aria-label", `Edit remark for ${booking.patient_name}`);
+  remarkInput.dataset.original = booking.remark ?? "";
+  remarkInput.addEventListener("blur", async () => {
+    if (remarkInput.value === remarkInput.dataset.original) return;
+    const saved = await updateAdminBooking(booking.id, { remark: remarkInput.value }, row);
+    if (saved) remarkInput.dataset.original = remarkInput.value;
+    else remarkInput.value = remarkInput.dataset.original;
+  });
+  remarkCell.append(remarkInput);
 
   const statusCell = document.createElement("td");
   statusCell.className = "admin-actions-cell";
@@ -997,6 +1015,7 @@ function createAdminRow(booking) {
     procedureCell,
     regionCell,
     notesCell,
+    remarkCell,
     statusCell,
   );
   return row;
@@ -1136,6 +1155,7 @@ async function updateAdminBooking(bookingId, patch, row) {
     p_expected_revision: booking.revision,
     p_procedure_ids: patch.procedureIds ?? null,
     p_notes: Object.hasOwn(patch, "notes") ? patch.notes : null,
+    p_remark: Object.hasOwn(patch, "remark") ? patch.remark : null,
     p_status: patch.status ?? null,
   });
 

@@ -80,6 +80,7 @@ export function filterBookings(bookings, query, source) {
       booking.subspecialty,
       booking.patient_source,
       booking.notes,
+      booking.remark,
       booking.status,
       booking.procedureSearch,
       ...(booking.affected_regions ?? []),
