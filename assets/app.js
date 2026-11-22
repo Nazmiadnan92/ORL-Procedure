@@ -948,38 +948,51 @@ function createAdminRow(booking) {
   const statusCell = document.createElement("td");
   statusCell.className = "admin-actions-cell";
   statusCell.dataset.label = "Status / Delete";
-  const statusGrid = document.createElement("div");
-  statusGrid.className = "admin-status-grid";
-  statusGrid.setAttribute("role", "group");
-  statusGrid.setAttribute("aria-label", `Status for ${booking.patient_name}`);
+  const actionRow = document.createElement("div");
+  actionRow.className = "admin-action-row";
+  const statusWrap = document.createElement("div");
+  statusWrap.className = "admin-status-select-wrap";
+  const statusSelect = document.createElement("select");
+  statusSelect.className = `admin-status-select admin-status-${booking.status.toLowerCase()}`;
+  statusSelect.setAttribute("aria-label", `Status for ${booking.patient_name}`);
   ["NEW", "READY", "DONE", "CANCEL"].forEach((status) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `admin-status-button admin-status-${status.toLowerCase()}`;
-    button.textContent = status;
-    button.setAttribute("aria-pressed", String(status === booking.status));
-    button.addEventListener("click", async () => {
-      if (status === booking.status) return;
-      await updateAdminBooking(booking.id, { status }, row);
-    });
-    statusGrid.append(button);
+    const option = document.createElement("option");
+    option.value = status;
+    option.textContent = status;
+    option.selected = status === booking.status;
+    statusSelect.append(option);
   });
-  statusCell.append(statusGrid);
+  statusSelect.addEventListener("change", async () => {
+    const nextStatus = statusSelect.value;
+    if (nextStatus === booking.status) return;
+    const saved = await updateAdminBooking(booking.id, { status: nextStatus }, row);
+    if (!saved) statusSelect.value = booking.status;
+  });
+  statusWrap.append(statusSelect);
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "delete-row-button";
   deleteButton.setAttribute("aria-label", `Delete booking for ${booking.patient_name}`);
-  deleteButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg><span>DELETE</span>';
+  deleteButton.title = "Delete booking";
+  deleteButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M9 7l1-3h4l1 3m-9 0 1 14h10l1-14" /></svg>';
   deleteButton.addEventListener("click", () => openDeleteDialog(booking.id));
-  statusCell.append(deleteButton);
+  actionRow.append(statusWrap, deleteButton);
+  statusCell.append(actionRow);
 
   const timestampCell = createLockedCell(formatDateTime(booking.booked_at));
   timestampCell.dataset.label = "Timestamp";
+  const patientCell = createLockedCell(booking.patient_name);
+  patientCell.dataset.label = "Patient";
+  patientCell.classList.add("admin-person-cell");
+  const doctorCell = createLockedCell(booking.doctor);
+  doctorCell.dataset.label = "Doctor";
+  doctorCell.classList.add("admin-person-cell");
 
   row.append(
     timestampCell,
-    createPersonCell(booking.patient_name, booking.doctor, true),
+    patientCell,
+    doctorCell,
     createStackedCell(booking.subspecialty, booking.patient_source, "Subspecialty / Source", "Source"),
     procedureCell,
     regionCell,

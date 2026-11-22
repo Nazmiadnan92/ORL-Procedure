@@ -1834,13 +1834,14 @@ tr.row-ward-bed td.procedure-cell,
   table-layout: fixed;
 }
 
-.admin-table th:nth-child(1) { width: 12%; }
-.admin-table th:nth-child(2) { width: 14%; }
-.admin-table th:nth-child(3) { width: 13%; }
-.admin-table th:nth-child(4) { width: 20%; }
-.admin-table th:nth-child(5) { width: 10%; }
-.admin-table th:nth-child(6) { width: 17%; }
-.admin-table th:nth-child(7) { width: 14%; }
+.admin-table th:nth-child(1) { width: 10%; }
+.admin-table th:nth-child(2) { width: 12%; }
+.admin-table th:nth-child(3) { width: 11%; }
+.admin-table th:nth-child(4) { width: 12%; }
+.admin-table th:nth-child(5) { width: 18%; }
+.admin-table th:nth-child(6) { width: 9%; }
+.admin-table th:nth-child(7) { width: 15%; }
+.admin-table th:nth-child(8) { width: 13%; }
 
 .admin-table th,
 .admin-table td {
@@ -1897,6 +1898,12 @@ tr.row-ward-bed td.procedure-cell,
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.7rem;
+}
+
+.admin-person-cell {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .editable-procedure {
@@ -2020,80 +2027,79 @@ tr.row-ward-bed td.procedure-cell,
   white-space: normal;
 }
 
-.admin-status-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+.admin-action-row {
+  display: flex;
+  align-items: center;
   gap: 6px;
   width: 100%;
 }
 
-.admin-status-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.admin-status-select-wrap {
+  position: relative;
+  flex: 1;
   min-width: 0;
-  min-height: 37px;
-  padding: 7px 6px;
+}
+
+.admin-status-select-wrap::after {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  content: "";
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.admin-status-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 27px 7px 9px;
   border: 1px solid #cfd9d6;
-  border-radius: 10px;
-  background: rgb(255 255 255 / 88%);
-  color: #657376;
+  border-radius: 9px;
+  appearance: none;
+  background: white;
+  color: #556568;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  line-height: 1;
 }
 
-.admin-status-button:hover:not(:disabled) {
-  border-color: #9cb3ae;
-  background: white;
+.admin-status-select:focus {
+  outline: 2px solid rgb(23 107 101 / 18%);
+  outline-offset: 1px;
 }
 
-.admin-status-button[aria-pressed="true"] {
-  color: white;
-  box-shadow: 0 4px 10px rgb(23 45 50 / 12%);
+.admin-status-new {
+  border-color: #c9d1d2;
+  background: #f2f4f4;
+  color: #566568;
 }
 
-.admin-status-button[aria-pressed="true"]::before {
-  margin-right: 6px;
-  content: "✓";
-  font-size: 0.9rem;
+.admin-status-ready {
+  border-color: #9ed2b8;
+  background: #e7f7ef;
+  color: #18754a;
 }
 
-.admin-status-new[aria-pressed="true"] {
-  border-color: #667477;
-  background: #667477;
+.admin-status-done {
+  border-color: #c9bde4;
+  background: #f0ecfa;
+  color: #694d9c;
 }
 
-.admin-status-ready[aria-pressed="true"] {
-  border-color: #2b9b65;
-  background: #2b9b65;
-}
-
-.admin-status-done[aria-pressed="true"] {
-  border-color: var(--purple);
-  background: var(--purple);
-}
-
-.admin-status-cancel[aria-pressed="true"] {
-  border-color: var(--red);
-  background: var(--red);
+.admin-status-cancel {
+  border-color: #efc1c7;
+  background: #fcecee;
+  color: #b02f40;
 }
 
 .admin-actions-cell .delete-row-button {
-  display: inline-flex;
-  width: 100%;
-  height: auto;
-  min-height: 37px;
-  margin: 12px 0 0;
-  padding: 7px 6px;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 10px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  flex: 0 0 38px;
+  margin: 0;
 }
 
 .admin-actions-cell .delete-row-button:hover:not(:disabled) {
@@ -2425,8 +2431,8 @@ tr.row-ward-bed td.procedure-cell,
     text-transform: uppercase;
   }
 
-  .admin-status-grid {
-    width: min(210px, 100%);
+  .admin-action-row {
+    width: min(250px, 100%);
   }
 
   .admin-pagination {
