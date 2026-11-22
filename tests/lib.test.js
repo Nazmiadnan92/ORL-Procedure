@@ -72,13 +72,13 @@ test("formats timestamps in Malaysia as dd/mm/yy hh:mm", () => {
   assert.equal(formatDateTime("2026-09-23T17:19:25.000Z"), "24/09/26 01:19");
 });
 
-test("builds the READY queue in time-ready order", () => {
+test("builds the READY queue with the latest patient first", () => {
   const bookings = [
     { ...base, id: "late", status: "READY", ready_at: "2026-11-21T08:00:00Z" },
     { ...base, id: "ignored", status: "NEW", ready_at: null },
     { ...base, id: "early", status: "READY", ready_at: "2026-11-21T07:30:00Z" },
   ];
-  assert.deepEqual(readyQueue(bookings).map((booking) => booking.id), ["early", "late"]);
+  assert.deepEqual(readyQueue(bookings).map((booking) => booking.id), ["late", "early"]);
   assert.equal(formatHourMinute("2026-11-21T07:30:00Z"), "15:30");
 });
 

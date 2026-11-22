@@ -12,7 +12,7 @@ import {
   normalizeBooking,
   readyQueue,
   readableError,
-} from "./lib.js?v=1.3.0";
+} from "./lib.js?v=1.3.1";
 
 const SUPABASE_URL = "https://wpssewipanzmsygmhior.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_b8ZgFXg5fheb5WV-nIe5MQ_ZKRpquAt";
