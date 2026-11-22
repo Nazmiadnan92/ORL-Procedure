@@ -984,7 +984,8 @@ function createAdminRow(booking) {
     const nextStatus = statusSelect.value;
     if (nextStatus === booking.status) return;
     const saved = await updateAdminBooking(booking.id, { status: nextStatus }, row);
-    if (!saved) statusSelect.value = booking.status;
+    if (saved) statusSelect.className = `admin-status-select admin-status-${nextStatus.toLowerCase()}`;
+    else statusSelect.value = booking.status;
   });
   statusWrap.append(statusSelect);
 
@@ -1042,6 +1043,7 @@ function createAdminProcedureEditor(booking, row) {
   const options = document.createElement("div");
   options.className = "procedure-editor-options";
   const selected = new Set(booking.procedures.map((procedure) => procedure.id));
+  let optionsReady = false;
 
   const renderOptions = () => {
     const query = search.value.trim().toLowerCase();
@@ -1066,7 +1068,6 @@ function createAdminProcedureEditor(booking, row) {
         options.append(label);
       });
   };
-  renderOptions();
   search.addEventListener("input", renderOptions);
 
   const actions = document.createElement("div");
@@ -1117,7 +1118,10 @@ function createAdminProcedureEditor(booking, row) {
       return;
     }
     const saved = await updateAdminBooking(booking.id, { procedureIds: [...selected] }, row);
-    if (saved) close();
+    if (saved) {
+      trigger.replaceChildren(createTagList(booking.procedures.map((procedure) => procedure.name)));
+      close();
+    }
   });
   actions.append(cancel, save);
   editor.append(search, options, actions);
@@ -1132,6 +1136,10 @@ function createAdminProcedureEditor(booking, row) {
       return;
     }
     editor.hidden = false;
+    if (!optionsReady) {
+      renderOptions();
+      optionsReady = true;
+    }
     trigger.setAttribute("aria-expanded", String(!editor.hidden));
     positionEditor();
     window.addEventListener("resize", positionEditor);
@@ -1146,9 +1154,10 @@ function createAdminProcedureEditor(booking, row) {
 async function updateAdminBooking(bookingId, patch, row) {
   const booking = state.adminBookings.find((item) => item.id === bookingId);
   if (!booking || row.classList.contains("saving")) return false;
+  const controls = [...row.querySelectorAll("button,select,textarea,input")];
   row.classList.remove("save-error");
   row.classList.add("saving");
-  row.querySelectorAll("button,select,textarea,input").forEach((control) => { control.disabled = true; });
+  controls.forEach((control) => { control.disabled = true; });
 
   const { data, error } = await supabase.rpc("update_booking", {
     p_booking_id: booking.id,
@@ -1161,6 +1170,8 @@ async function updateAdminBooking(bookingId, patch, row) {
 
   if (error) {
     row.classList.add("save-error");
+    row.classList.remove("saving");
+    controls.forEach((control) => { control.disabled = false; });
     showToast(
       "Changes not saved",
       /changed|40001/i.test(String(error.message))
@@ -1168,15 +1179,41 @@ async function updateAdminBooking(bookingId, patch, row) {
         : readableError(error),
       "error",
     );
-    await fetchAdminBookings({ silent: true });
+    void fetchAdminBookings({ silent: true });
     return false;
   }
 
+  const previousStatus = booking.status;
   booking.revision = data;
-  await Promise.all([
-    fetchAdminBookings({ silent: true }),
-    fetchMonthlyStatistics({ silent: true }),
-  ]);
+  if (Object.hasOwn(patch, "notes")) booking.notes = patch.notes;
+  if (Object.hasOwn(patch, "remark")) booking.remark = patch.remark;
+  if (patch.status) {
+    booking.status = patch.status;
+    booking.ready_at = patch.status === "READY" && previousStatus !== "READY"
+      ? new Date().toISOString()
+      : patch.status === "READY" ? booking.ready_at : null;
+  }
+  if (patch.procedureIds) {
+    const procedureIds = new Set(patch.procedureIds);
+    booking.procedures = state.adminProcedures
+      .filter((procedure) => procedureIds.has(procedure.id))
+      .map((procedure) => ({ ...procedure }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    booking.procedureSearch = booking.procedures.map((procedure) => procedure.name).join(" ").toLowerCase();
+  }
+
+  row.classList.remove("saving", "save-error", "row-ward", "row-ward-bed", "row-clinic-bed");
+  bookingRowClass(booking).split(" ").filter(Boolean).forEach((className) => row.classList.add(className));
+  controls.forEach((control) => { control.disabled = false; });
+
+  if (patch.status && previousStatus !== patch.status) {
+    const summaryKey = { NEW: "new_count", READY: "ready_count", DONE: "done_count", CANCEL: "cancel_count" };
+    state.adminSummary[summaryKey[previousStatus]] = Math.max(0, state.adminSummary[summaryKey[previousStatus]] - 1);
+    state.adminSummary[summaryKey[patch.status]] += 1;
+    updateAdminSummary();
+  }
+  elements.adminLastUpdated.textContent = formatTime(new Date());
+  if (patch.procedureIds) void fetchMonthlyStatistics({ silent: true });
   showToast("Changes saved", "The booking has been updated.");
   return true;
 }
@@ -1218,7 +1255,10 @@ function scheduleAdminRefresh() {
   window.clearTimeout(state.adminRefreshTimer);
   state.adminRefreshTimer = window.setTimeout(() => {
     const activeControl = document.activeElement;
-    if (activeControl && elements.adminTableBody.contains(activeControl)) {
+    const editingControl = activeControl && elements.adminTableBody.contains(activeControl)
+      && (activeControl.matches("input, textarea, select")
+        || activeControl.closest(".procedure-editor:not([hidden])"));
+    if (editingControl) {
       scheduleAdminRefresh();
       return;
     }
