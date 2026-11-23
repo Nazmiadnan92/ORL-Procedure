@@ -1857,6 +1857,22 @@ tr.row-ward-bed td.procedure-cell,
   font-weight: 600;
 }
 
+.admin-date-picker {
+  flex: 0 0 auto;
+}
+
+.admin-date-picker input {
+  min-height: 46px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .admin-table-scroll {
   overflow-x: hidden;
   overflow-y: auto;
@@ -2699,6 +2715,14 @@ tr.row-ward-bed td.procedure-cell,
 
   .compact-select {
     flex: 1;
+  }
+
+  .admin-date-picker {
+    flex: 1 1 100%;
+  }
+
+  .admin-date-picker input {
+    width: 100%;
   }
 
   .compact-select select {

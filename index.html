@@ -17,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=1.8.0" />
+    <link rel="stylesheet" href="./assets/styles.css?v=1.9.0" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
@@ -343,7 +343,7 @@
           </div>
 
           <div id="admin-bookings-panel" role="tabpanel" aria-labelledby="admin-bookings-tab">
-            <div class="admin-summary" aria-label="Summary of all records">
+            <div class="admin-summary" aria-label="Summary of displayed records">
             <div><span>Total Records</span><strong id="admin-total-count">0</strong></div>
             <div><span>NEW</span><strong id="admin-new-count">0</strong></div>
             <div><span>READY</span><strong id="admin-ready-count">0</strong></div>
@@ -375,6 +375,18 @@
                   <option value="DONE">DONE</option>
                   <option value="CANCEL">CANCEL</option>
                 </select>
+              </label>
+              <label class="compact-select">
+                <span class="sr-only">Filter by booking date</span>
+                <select id="admin-date-mode">
+                  <option value="today">Today</option>
+                  <option value="date">Select Date</option>
+                  <option value="all">All History</option>
+                </select>
+              </label>
+              <label id="admin-date-picker" class="admin-date-picker" hidden>
+                <span class="sr-only">Booking date</span>
+                <input id="admin-date-filter" type="date" />
               </label>
               <button class="icon-button" id="admin-refresh" type="button" aria-label="Refresh Admin records" title="Refresh">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg>
@@ -540,6 +552,6 @@
       <div class="noscript-message">Please enable JavaScript to use this booking system.</div>
     </noscript>
 
-    <script type="module" src="./assets/app.js?v=1.8.0"></script>
+    <script type="module" src="./assets/app.js?v=1.9.0"></script>
   </body>
 </html>

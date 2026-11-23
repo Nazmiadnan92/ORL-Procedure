@@ -8,6 +8,7 @@ import {
   formatHourMinute,
   millisecondsUntilMalaysiaMidnight,
   malaysiaTodayBounds,
+  malaysiaDateValue,
   monthlyStatistics,
   normalizeBooking,
   readyQueue,
@@ -93,6 +94,7 @@ test("calculates a future Malaysia midnight interval", () => {
 });
 
 test("builds exact Malaysia day bounds for the Staff list", () => {
+  assert.equal(malaysiaDateValue(new Date("2026-11-22T18:00:00.000Z")), "2026-11-23");
   assert.deepEqual(malaysiaTodayBounds(new Date("2026-11-19T18:00:00.000Z")), {
     start: "2026-11-19T16:00:00.000Z",
     end: "2026-11-20T16:00:00.000Z",

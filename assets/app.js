@@ -6,13 +6,14 @@ import {
   formatHourMinute,
   formatTime,
   malaysiaDateLabel,
+  malaysiaDateValue,
   malaysiaMonthYear,
   malaysiaTodayBounds,
   millisecondsUntilMalaysiaMidnight,
   normalizeBooking,
   readyQueue,
   readableError,
-} from "./lib.js?v=1.3.1";
+} from "./lib.js?v=1.4.0";
 
 const SUPABASE_URL = "https://wpssewipanzmsygmhior.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_b8ZgFXg5fheb5WV-nIe5MQ_ZKRpquAt";
@@ -42,6 +43,8 @@ const state = {
   adminSearchQuery: "",
   adminSourceFilter: "All",
   adminStatusFilter: "All",
+  adminDateMode: "today",
+  adminSelectedDate: malaysiaDateValue(),
   adminPage: 1,
   adminPageSize: 100,
   adminFilteredCount: 0,
@@ -107,6 +110,9 @@ const elements = {
   adminSearch: document.querySelector("#admin-search"),
   adminSourceFilter: document.querySelector("#admin-source-filter"),
   adminStatusFilter: document.querySelector("#admin-status-filter"),
+  adminDateMode: document.querySelector("#admin-date-mode"),
+  adminDatePicker: document.querySelector("#admin-date-picker"),
+  adminDateFilter: document.querySelector("#admin-date-filter"),
   adminRefresh: document.querySelector("#admin-refresh"),
   adminRetry: document.querySelector("#admin-retry"),
   adminLoading: document.querySelector("#admin-loading"),
@@ -703,6 +709,7 @@ async function fetchAdminBookings({ silent = false, resetPage = false } = {}) {
       p_query: state.adminSearchQuery,
       p_source: state.adminSourceFilter,
       p_status: state.adminStatusFilter,
+      p_date: state.adminDateMode === "all" ? null : state.adminSelectedDate,
     });
     if (error) throw error;
     if (requestId !== state.adminRequestId) return;
@@ -1304,6 +1311,11 @@ function scheduleMidnightReset() {
   state.midnightTimer = window.setTimeout(async () => {
     updateDateLabels();
     await fetchBookings({ silent: false });
+    if (state.adminVerified && state.adminDateMode === "today") {
+      state.adminSelectedDate = malaysiaDateValue();
+      elements.adminDateFilter.value = state.adminSelectedDate;
+      await fetchAdminBookings({ silent: true, resetPage: true });
+    }
     scheduleMidnightReset();
   }, millisecondsUntilMalaysiaMidnight() + 1500);
 }
@@ -1408,6 +1420,21 @@ function bindEvents() {
     state.adminStatusFilter = elements.adminStatusFilter.value;
     fetchAdminBookings({ silent: true, resetPage: true });
   });
+  elements.adminDateMode.addEventListener("change", () => {
+    state.adminDateMode = elements.adminDateMode.value;
+    if (state.adminDateMode === "today") {
+      state.adminSelectedDate = malaysiaDateValue();
+      elements.adminDateFilter.value = state.adminSelectedDate;
+    }
+    elements.adminDatePicker.hidden = state.adminDateMode !== "date";
+    fetchAdminBookings({ silent: true, resetPage: true });
+    if (state.adminDateMode === "date") elements.adminDateFilter.focus();
+  });
+  elements.adminDateFilter.addEventListener("change", () => {
+    if (!elements.adminDateFilter.value) return;
+    state.adminSelectedDate = elements.adminDateFilter.value;
+    fetchAdminBookings({ silent: true, resetPage: true });
+  });
   elements.adminPagePrevious.addEventListener("click", () => {
     if (state.adminPage <= 1) return;
     state.adminPage -= 1;
@@ -1446,6 +1473,7 @@ function bindEvents() {
 }
 
 async function initialise() {
+  elements.adminDateFilter.value = state.adminSelectedDate;
   bindEvents();
   updateDateLabels();
   setView(location.hash.slice(1), false);
