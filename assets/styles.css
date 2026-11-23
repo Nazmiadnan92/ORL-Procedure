@@ -1049,6 +1049,42 @@ h1 {
   overflow-x: auto;
 }
 
+.staff-booking-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.staff-booking-table th:nth-child(1) { width: 9%; }
+.staff-booking-table th:nth-child(2) { width: 12%; }
+.staff-booking-table th:nth-child(3) { width: 11%; }
+.staff-booking-table th:nth-child(4) { width: 13%; }
+.staff-booking-table th:nth-child(5) { width: 20%; }
+.staff-booking-table th:nth-child(6) { width: 10%; }
+.staff-booking-table th:nth-child(7) { width: 15%; }
+.staff-booking-table th:nth-child(8) { width: 10%; }
+
+.staff-booking-table th,
+.staff-booking-table td {
+  padding: 7px 8px;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.staff-person-cell {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.staff-notes-text {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 table {
   width: 100%;
   min-width: 1120px;

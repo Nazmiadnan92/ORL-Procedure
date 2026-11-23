@@ -509,21 +509,29 @@ function createPersonCell(patientName, doctorName, admin = false) {
 function createTableRow(booking) {
   const row = document.createElement("tr");
   row.className = bookingRowClass(booking);
+  const patientCell = textCell(booking.patient_name, "staff-person-cell");
+  const doctorCell = textCell(booking.doctor, "staff-person-cell");
   const procedureCell = document.createElement("td");
   procedureCell.className = "procedure-cell";
   procedureCell.append(createTagList(booking.procedures.map((item) => item.name)));
   const regionCell = document.createElement("td");
   regionCell.append(createTagList(booking.affected_regions));
+  const notesCell = document.createElement("td");
+  const notesText = document.createElement("span");
+  notesText.className = "staff-notes-text";
+  notesText.textContent = booking.notes || "—";
+  notesText.title = booking.notes || "";
+  notesCell.append(notesText);
   const statusCell = document.createElement("td");
   statusCell.append(statusBadge(booking.status));
   row.append(
     textCell(formatDateTime(booking.booked_at)),
-    createPersonCell(booking.patient_name, booking.doctor),
-    textCell(booking.subspecialty),
+    patientCell,
+    doctorCell,
+    createStackedCell(booking.subspecialty, booking.patient_source, "Subspecialty / Source", "Source"),
     procedureCell,
     regionCell,
-    textCell(booking.patient_source),
-    textCell(booking.notes),
+    notesCell,
     statusCell,
   );
   return row;
