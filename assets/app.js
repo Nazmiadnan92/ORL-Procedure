@@ -23,7 +23,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   realtime: { params: { eventsPerSecond: 5 } },
 });
 
+const LIVE_REFRESH_DELAY = 900;
+
 const state = {
+  activeView: "booking",
   procedures: [],
   selectedProcedureIds: new Set(),
   bookings: [],
@@ -31,8 +34,10 @@ const state = {
   searchQuery: "",
   pendingRequestId: null,
   listLoaded: false,
+  listRequestId: 0,
   realtimeChannel: null,
   refreshTimer: null,
+  pendingRefreshes: new Set(),
   midnightTimer: null,
   adminBookings: [],
   adminProcedures: [],
@@ -50,13 +55,15 @@ const state = {
   adminFilteredCount: 0,
   adminRequestId: 0,
   adminQueryTimer: null,
-  adminRefreshTimer: null,
   pendingDeleteId: null,
   adminSection: "bookings",
   statsMonth: malaysiaMonthYear(new Date()).month,
   statsYear: malaysiaMonthYear(new Date()).year,
   statsData: null,
   statsLoadedKey: "",
+  statsLoadingKey: "",
+  statsVersion: 0,
+  statsYearsRequest: null,
   statsRequestId: 0,
 };
 
@@ -151,8 +158,9 @@ const elements = {
   procedureStatsList: document.querySelector("#procedure-stats-list"),
 };
 
-function setView(viewName, updateHistory = true) {
+function setView(viewName, updateHistory = true, loadList = true) {
   const resolved = ["booking", "list", "admin"].includes(viewName) ? viewName : "booking";
+  state.activeView = resolved;
   elements.views.forEach((view) => {
     const active = view.id === `${resolved}-view`;
     view.classList.toggle("active", active);
@@ -163,7 +171,7 @@ function setView(viewName, updateHistory = true) {
   });
   elements.adminEntry.classList.toggle("active", resolved === "admin");
   if (updateHistory) history.replaceState(null, "", `#${resolved}`);
-  if (resolved === "list") {
+  if (resolved === "list" && loadList) {
     fetchBookings({ silent: state.listLoaded });
   }
   if (resolved === "admin") prepareAdminView();
@@ -354,8 +362,9 @@ async function submitBooking(event) {
   elements.notesCount.textContent = "0";
   setSubmitting(false);
   showToast("Booking submitted", "The new booking has been recorded with NEW status.");
-  await Promise.all([fetchBookings({ silent: true }), loadProcedureCatalog()]);
-  setView("list");
+  setView("list", true, false);
+  handleBookingChange();
+  await loadProcedureCatalog().catch((error) => console.warn("Unable to refresh procedures", error.message));
 }
 
 function setSubmitting(isSubmitting) {
@@ -365,6 +374,7 @@ function setSubmitting(isSubmitting) {
 }
 
 async function fetchBookings({ silent = false } = {}) {
+  const requestId = ++state.listRequestId;
   if (!silent) showListState("loading");
   elements.refreshButton.classList.add("loading");
 
@@ -391,6 +401,7 @@ async function fetchBookings({ silent = false } = {}) {
     .gte("booked_at", today.start)
     .lt("booked_at", today.end)
     .order("booked_at", { ascending: false });
+  if (requestId !== state.listRequestId) return;
   elements.refreshButton.classList.remove("loading");
 
   if (error) {
@@ -588,8 +599,10 @@ function createBookingCard(booking) {
 async function prepareAdminView() {
   if (state.adminVerified && state.adminSession) {
     showAdminDashboard();
-    if (!state.adminLoaded) {
-      await Promise.all([fetchAdminBookings(), populateStatsYears()]);
+    if (state.adminSection === "statistics") {
+      await fetchMonthlyStatistics({ silent: Boolean(state.statsData) });
+    } else {
+      await fetchAdminBookings({ silent: state.adminLoaded });
     }
     return;
   }
@@ -662,7 +675,7 @@ async function handleAdminLogin(event) {
   elements.adminPassword.value = "";
   setAdminLoginLoading(false);
   showToast("Admin logged in", "Historical records can now be managed.");
-  await Promise.all([fetchAdminBookings(), populateStatsYears()]);
+  await prepareAdminView();
 }
 
 async function handleAdminLogout() {
@@ -674,6 +687,9 @@ async function handleAdminLogout() {
   state.adminBookings = [];
   state.statsData = null;
   state.statsLoadedKey = "";
+  state.statsLoadingKey = "";
+  state.statsRequestId += 1;
+  state.statsYearsRequest = null;
   elements.adminLogout.disabled = false;
   showAdminLogin();
   showToast("Admin logged out", "Management access has been closed on this device.");
@@ -697,6 +713,14 @@ async function loadAdminProcedureCatalog() {
 
 async function fetchAdminBookings({ silent = false, resetPage = false } = {}) {
   if (!state.adminVerified) return;
+  if (state.adminDateMode === "today") {
+    const today = malaysiaDateValue();
+    if (today !== state.adminSelectedDate) {
+      state.adminSelectedDate = today;
+      elements.adminDateFilter.value = today;
+      resetPage = true;
+    }
+  }
   if (resetPage) state.adminPage = 1;
   const requestId = ++state.adminRequestId;
   if (!silent) showAdminState("loading");
@@ -752,6 +776,7 @@ function updateAdminSummary() {
 }
 
 function setAdminSection(section) {
+  const previousSection = state.adminSection;
   state.adminSection = section === "statistics" ? "statistics" : "bookings";
   const showStats = state.adminSection === "statistics";
   elements.adminBookingsPanel.hidden = showStats;
@@ -760,17 +785,18 @@ function setAdminSection(section) {
   elements.adminStatsTab.classList.toggle("active", showStats);
   elements.adminBookingsTab.setAttribute("aria-selected", String(!showStats));
   elements.adminStatsTab.setAttribute("aria-selected", String(showStats));
-  const selectedKey = `${state.statsYear}-${state.statsMonth}`;
-  if (showStats && state.statsLoadedKey !== selectedKey) {
+  if (showStats) {
     fetchMonthlyStatistics({ silent: Boolean(state.statsData) });
+  } else if (previousSection !== state.adminSection) {
+    fetchAdminBookings({ silent: state.adminLoaded });
   }
 }
 
-async function populateStatsYears() {
-  const currentYear = malaysiaMonthYear(new Date()).year;
+async function populateStatsYears(currentYear) {
   const { data, error } = await supabase.rpc("admin_statistics_years");
   if (error) throw error;
-  const years = new Set([currentYear, ...(data ?? [])].map(Number));
+  if (!state.adminVerified) return;
+  const years = new Set([currentYear, state.statsYear, ...(data ?? [])].map(Number));
   const sortedYears = [...years].sort((a, b) => b - a);
   elements.statsYear.replaceChildren(
     ...sortedYears.map((year) => {
@@ -780,9 +806,19 @@ async function populateStatsYears() {
       return option;
     }),
   );
-  if (!years.has(state.statsYear)) state.statsYear = sortedYears[0];
   elements.statsYear.value = String(state.statsYear);
   elements.statsMonth.value = String(state.statsMonth);
+}
+
+function loadStatsYears() {
+  const year = malaysiaMonthYear(new Date()).year;
+  if (state.statsYearsRequest?.year === year) return state.statsYearsRequest.promise;
+  const request = { year, promise: populateStatsYears(year) };
+  state.statsYearsRequest = request;
+  request.promise.catch(() => {
+    if (state.statsYearsRequest === request) state.statsYearsRequest = null;
+  });
+  return request.promise;
 }
 
 function percentage(value, total) {
@@ -790,16 +826,31 @@ function percentage(value, total) {
 }
 
 async function fetchMonthlyStatistics({ silent = false } = {}) {
-  if (!state.adminVerified) return;
-  const key = `${state.statsYear}-${state.statsMonth}`;
+  if (!state.adminVerified || state.activeView !== "admin"
+    || state.adminSection !== "statistics" || document.hidden) return;
+  const yearsRequest = loadStatsYears().catch(() => {
+    if (state.adminVerified && !elements.statsYear.options.length) {
+      elements.statsYear.add(new Option(String(state.statsYear), String(state.statsYear)));
+    }
+  });
+  const period = `${state.statsYear}-${state.statsMonth}`;
+  const key = `${period}:${state.statsVersion}`;
+  if (state.statsLoadedKey === key || state.statsLoadingKey === key) return;
+  state.statsLoadingKey = key;
   const requestId = ++state.statsRequestId;
   if (!silent) elements.statsPeriodLabel.textContent = "Loading…";
-  const { data, error } = await supabase.rpc("admin_monthly_statistics", {
-    p_year: state.statsYear,
-    p_month: state.statsMonth,
-  });
-  if (requestId !== state.statsRequestId || key !== `${state.statsYear}-${state.statsMonth}`) return;
+  const [{ data, error }] = await Promise.all([
+    supabase.rpc("admin_monthly_statistics", {
+      p_year: state.statsYear,
+      p_month: state.statsMonth,
+    }),
+    yearsRequest,
+  ]);
+  if (requestId !== state.statsRequestId) return;
+  state.statsLoadingKey = "";
+  if (!state.adminVerified || period !== `${state.statsYear}-${state.statsMonth}`) return;
   if (error) {
+    elements.statsPeriodLabel.textContent = "Unable to load statistics";
     showToast("Unable to load statistics", readableError(error), "error");
     return;
   }
@@ -1228,7 +1279,7 @@ async function updateAdminBooking(bookingId, patch, row) {
     updateAdminSummary();
   }
   elements.adminLastUpdated.textContent = formatTime(new Date());
-  if (patch.procedureIds) void fetchMonthlyStatistics({ silent: true });
+  handleBookingChange();
   showToast("Changes saved", "The booking has been updated.");
   return true;
 }
@@ -1258,64 +1309,76 @@ async function deleteAdminBooking() {
   }
   state.pendingDeleteId = null;
   elements.deleteDialog.close();
-  await Promise.all([
-    fetchAdminBookings({ silent: true }),
-    fetchMonthlyStatistics({ silent: true }),
-  ]);
+  handleBookingChange();
   showToast("Booking deleted", "The record is hidden and can still be restored.");
 }
 
-function scheduleAdminRefresh() {
-  if (!state.adminVerified) return;
-  window.clearTimeout(state.adminRefreshTimer);
-  state.adminRefreshTimer = window.setTimeout(() => {
-    const activeControl = document.activeElement;
-    const editingControl = activeControl && elements.adminTableBody.contains(activeControl)
-      && (activeControl.matches("input, textarea, select")
-        || activeControl.closest(".procedure-editor:not([hidden])"));
-    if (editingControl) {
-      scheduleAdminRefresh();
-      return;
-    }
-    fetchAdminBookings({ silent: true });
-    fetchMonthlyStatistics({ silent: true });
-  }, 420);
+function handleBookingChange() {
+  state.statsVersion += 1;
+  scheduleLiveRefresh("staff", "admin");
 }
 
-function scheduleRefresh() {
-  window.clearTimeout(state.refreshTimer);
-  state.refreshTimer = window.setTimeout(() => fetchBookings({ silent: true }), 220);
+function scheduleLiveRefresh(...views) {
+  views.forEach((view) => state.pendingRefreshes.add(view));
+  if (state.refreshTimer !== null || document.hidden || !state.pendingRefreshes.size) return;
+  state.refreshTimer = window.setTimeout(flushLiveRefresh, LIVE_REFRESH_DELAY);
+}
+
+async function flushLiveRefresh() {
+  try {
+    if (document.hidden) return;
+    const refreshStaff = state.pendingRefreshes.delete("staff");
+    const refreshAdmin = state.pendingRefreshes.delete("admin");
+    const requests = [];
+    if (refreshStaff) requests.push(fetchBookings({ silent: state.listLoaded }));
+    if (refreshAdmin && state.adminVerified && state.activeView === "admin") {
+      if (state.adminSection === "statistics") {
+        requests.push(fetchMonthlyStatistics({ silent: Boolean(state.statsData) }));
+      } else if (adminIsEditing()) {
+        state.pendingRefreshes.add("admin");
+      } else {
+        requests.push(fetchAdminBookings({ silent: state.adminLoaded }));
+      }
+    }
+    await Promise.allSettled(requests);
+  } finally {
+    state.refreshTimer = null;
+    scheduleLiveRefresh();
+  }
+}
+
+function adminIsEditing() {
+  const focused = document.activeElement;
+  return elements.deleteDialog.open
+    || Boolean(elements.adminTableBody.querySelector(".saving, .procedure-editor:not([hidden])"))
+    || (focused && elements.adminTableBody.contains(focused) && focused.matches("input, textarea, select"));
 }
 
 function startRealtime() {
   if (state.realtimeChannel) supabase.removeChannel(state.realtimeChannel);
   setConnection("connecting");
-  state.realtimeChannel = supabase
+  let connectedBefore = false;
+  const channel = supabase
     .channel("staff-booking-list")
-    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-      scheduleRefresh();
-      scheduleAdminRefresh();
-    })
-    .on("postgres_changes", { event: "*", schema: "public", table: "booking_procedures" }, () => {
-      scheduleRefresh();
-      scheduleAdminRefresh();
-    })
-    .subscribe((status) => {
-      if (status === "SUBSCRIBED") setConnection("online");
-      if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setConnection("offline");
-    });
+    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, handleBookingChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "booking_procedures" }, handleBookingChange);
+  state.realtimeChannel = channel;
+  channel.subscribe((status) => {
+    if (state.realtimeChannel !== channel) return;
+    if (status === "SUBSCRIBED") {
+      setConnection("online");
+      if (connectedBefore) handleBookingChange();
+      connectedBefore = true;
+    }
+    if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setConnection("offline");
+  });
 }
 
 function scheduleMidnightReset() {
   window.clearTimeout(state.midnightTimer);
-  state.midnightTimer = window.setTimeout(async () => {
+  state.midnightTimer = window.setTimeout(() => {
     updateDateLabels();
-    await fetchBookings({ silent: false });
-    if (state.adminVerified && state.adminDateMode === "today") {
-      state.adminSelectedDate = malaysiaDateValue();
-      elements.adminDateFilter.value = state.adminSelectedDate;
-      await fetchAdminBookings({ silent: true, resetPage: true });
-    }
+    handleBookingChange();
     scheduleMidnightReset();
   }, millisecondsUntilMalaysiaMidnight() + 1500);
 }
@@ -1448,7 +1511,7 @@ function bindEvents() {
   });
   elements.adminRefresh.addEventListener("click", () => {
     fetchAdminBookings({ silent: state.adminLoaded });
-    fetchMonthlyStatistics({ silent: true });
+    state.statsVersion += 1;
   });
   elements.adminRetry.addEventListener("click", () => fetchAdminBookings());
   elements.confirmDelete.addEventListener("click", (event) => {
@@ -1458,25 +1521,23 @@ function bindEvents() {
   window.addEventListener("hashchange", () => setView(location.hash.slice(1), false));
   window.addEventListener("online", () => {
     startRealtime();
-    fetchBookings({ silent: state.listLoaded });
+    handleBookingChange();
   });
   window.addEventListener("offline", () => setConnection("offline"));
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-      fetchBookings({ silent: state.listLoaded });
-      if (state.adminVerified) {
-        fetchAdminBookings({ silent: state.adminLoaded });
-        fetchMonthlyStatistics({ silent: true });
-      }
+      updateDateLabels();
+      handleBookingChange();
     }
   });
 }
 
 async function initialise() {
   elements.adminDateFilter.value = state.adminSelectedDate;
+  elements.statsMonth.value = String(state.statsMonth);
   bindEvents();
   updateDateLabels();
-  setView(location.hash.slice(1), false);
+  setView(location.hash.slice(1), false, false);
   scheduleMidnightReset();
   startRealtime();
 
@@ -1501,8 +1562,9 @@ async function initialise() {
       loadProcedureCatalog(),
       fetchBookings(),
     ]);
-    if (sessionData.session && (await verifyAdminSession(sessionData.session)) && location.hash === "#admin") {
-      await Promise.all([fetchAdminBookings(), populateStatsYears()]);
+    if (sessionData.session && (state.adminVerified || await verifyAdminSession(sessionData.session))
+      && state.activeView === "admin") {
+      await prepareAdminView();
     }
   } catch (error) {
     setConnection("offline");
