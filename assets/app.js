@@ -3,7 +3,6 @@ import {
   bookingRowClass,
   filterBookings,
   formatDateTime,
-  formatHourMinute,
   formatTime,
   malaysiaDateLabel,
   malaysiaDateValue,
@@ -11,7 +10,6 @@ import {
   malaysiaTodayBounds,
   millisecondsUntilMalaysiaMidnight,
   normalizeBooking,
-  readyQueue,
   readableError,
 } from "./lib.js?v=1.4.0";
 
@@ -88,10 +86,6 @@ const elements = {
   tableBody: document.querySelector("#booking-table-body"),
   bookingCards: document.querySelector("#booking-cards"),
   bookingSearch: document.querySelector("#booking-search"),
-  readyCount: document.querySelector("#ready-count"),
-  readyEmpty: document.querySelector("#ready-empty"),
-  readyTable: document.querySelector("#ready-table"),
-  readyTableBody: document.querySelector("#ready-table-body"),
   filterButtons: document.querySelectorAll("[data-filter]"),
   refreshButton: document.querySelector("#refresh-button"),
   retryList: document.querySelector("#retry-list"),
@@ -171,6 +165,7 @@ function setView(viewName, updateHistory = true, loadList = true) {
   });
   elements.adminEntry.classList.toggle("active", resolved === "admin");
   if (updateHistory) history.replaceState(null, "", `#${resolved}`);
+  elements.navCount.hidden = resolved !== "list" || state.bookings.length === 0;
   if (resolved === "list" && loadList) {
     fetchBookings({ silent: state.listLoaded });
   }
@@ -388,8 +383,6 @@ async function fetchBookings({ silent = false } = {}) {
     "patient_source",
     "notes",
     "status",
-    "ready_at",
-    "updated_at",
     "revision",
     "booking_procedures(procedure_id,procedures(name,uses_bed))",
   ].join(",");
@@ -413,7 +406,6 @@ async function fetchBookings({ silent = false } = {}) {
   state.bookings = (data ?? []).map(normalizeBooking);
   state.listLoaded = true;
   updateSummary();
-  renderReadyPatients();
   renderBookings();
   elements.lastUpdated.textContent = formatTime(new Date());
 }
@@ -426,27 +418,7 @@ function updateSummary() {
   elements.clinicCount.textContent = String(clinic);
   elements.wardCount.textContent = String(ward);
   elements.navCount.textContent = String(total);
-  elements.navCount.hidden = total === 0;
-}
-
-function renderReadyPatients() {
-  const readyBookings = readyQueue(state.bookings);
-  elements.readyCount.textContent = String(readyBookings.length);
-  elements.readyEmpty.hidden = readyBookings.length !== 0;
-  elements.readyTable.hidden = readyBookings.length === 0;
-  elements.readyTableBody.replaceChildren(...readyBookings.map(createReadyRow));
-}
-
-function createReadyRow(booking) {
-  const row = document.createElement("tr");
-  const procedureNames = booking.procedures.map((procedure) => procedure.name).join(", ");
-  row.append(
-    textCell(formatHourMinute(booking.ready_at ?? booking.updated_at ?? booking.booked_at)),
-    textCell(booking.doctor),
-    textCell(booking.patient_name),
-    textCell(procedureNames),
-  );
-  return row;
+  elements.navCount.hidden = state.activeView !== "list" || total === 0;
 }
 
 function showListState(kind) {
@@ -1330,7 +1302,9 @@ async function flushLiveRefresh() {
     const refreshStaff = state.pendingRefreshes.delete("staff");
     const refreshAdmin = state.pendingRefreshes.delete("admin");
     const requests = [];
-    if (refreshStaff) requests.push(fetchBookings({ silent: state.listLoaded }));
+    if (refreshStaff && state.activeView === "list") {
+      requests.push(fetchBookings({ silent: state.listLoaded }));
+    }
     if (refreshAdmin && state.adminVerified && state.activeView === "admin") {
       if (state.adminSection === "statistics") {
         requests.push(fetchMonthlyStatistics({ silent: Boolean(state.statsData) }));
@@ -1357,18 +1331,15 @@ function adminIsEditing() {
 function startRealtime() {
   if (state.realtimeChannel) supabase.removeChannel(state.realtimeChannel);
   setConnection("connecting");
-  let connectedBefore = false;
   const channel = supabase
-    .channel("staff-booking-list")
-    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, handleBookingChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "booking_procedures" }, handleBookingChange);
+    .channel("booking-updates")
+    .on("broadcast", { event: "bookings-changed" }, handleBookingChange);
   state.realtimeChannel = channel;
   channel.subscribe((status) => {
     if (state.realtimeChannel !== channel) return;
     if (status === "SUBSCRIBED") {
       setConnection("online");
-      if (connectedBefore) handleBookingChange();
-      connectedBefore = true;
+      handleBookingChange();
     }
     if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setConnection("offline");
   });
@@ -1560,7 +1531,7 @@ async function initialise() {
     const [{ data: sessionData }] = await Promise.all([
       supabase.auth.getSession(),
       loadProcedureCatalog(),
-      fetchBookings(),
+      state.activeView === "list" ? fetchBookings() : null,
     ]);
     if (sessionData.session && (state.adminVerified || await verifyAdminSession(sessionData.session))
       && state.activeView === "admin") {
