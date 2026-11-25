@@ -167,7 +167,8 @@ function setView(viewName, updateHistory = true, loadList = true) {
   if (updateHistory) history.replaceState(null, "", `#${resolved}`);
   elements.navCount.hidden = resolved !== "list" || state.bookings.length === 0;
   if (resolved === "list" && loadList) {
-    fetchBookings({ silent: state.listLoaded });
+    if (!state.listLoaded) showListState("loading");
+    scheduleLiveRefresh("staff");
   }
   if (resolved === "admin") prepareAdminView();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1508,7 +1509,7 @@ async function initialise() {
   elements.statsMonth.value = String(state.statsMonth);
   bindEvents();
   updateDateLabels();
-  setView(location.hash.slice(1), false, false);
+  setView(location.hash.slice(1), false);
   scheduleMidnightReset();
   startRealtime();
 
@@ -1531,7 +1532,6 @@ async function initialise() {
     const [{ data: sessionData }] = await Promise.all([
       supabase.auth.getSession(),
       loadProcedureCatalog(),
-      state.activeView === "list" ? fetchBookings() : null,
     ]);
     if (sessionData.session && (state.adminVerified || await verifyAdminSession(sessionData.session))
       && state.activeView === "admin") {
